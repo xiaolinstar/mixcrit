@@ -20,6 +20,7 @@
 | Apple Developer 账号 | ✅ 已注册 | cn.xiaolinstar.mixcrit |
 | Bundle Identifier | ✅ 已配置 | cn.xiaolinstar.mixcrit |
 | Xcode 模拟器运行 | ✅ 正常 | 可在模拟器中运行 |
+| P0 原型验收清单 | ⏳ 待执行 | 见 `docs/p0-acceptance-checklist.md` |
 | App Store Connect App 记录 | ⏳ 待创建 | 需在 appstoreconnect.apple.com 创建 |
 | App Icon | ⏳ 待提供 | 需要 1024×1024 源文件 |
 | 启动屏 | ⏳ 待配置 | 需要配置 LaunchScreen |

@@ -51,16 +51,15 @@ struct ContentView: View {
                     hapticTick: $hapticTick,
                     ingredients: ingredients,
                     onServe: serveDrink,
-                    onReset: resetDrink
+                    onReset: { resetDrink(to: .mixing) }
                 )
             case .score:
                 ScoreView(
                     mix: currentMix,
                     score: lastScore ?? MojitoScore.empty,
-                    onRetry: resetDrink,
+                    onRetry: { resetDrink(to: .mixing) },
                     onBackToBar: {
-                        resetDrink()
-                        phase = .bar
+                        resetDrink(to: .bar)
                     }
                 )
             }
@@ -76,7 +75,7 @@ struct ContentView: View {
         }
     }
 
-    private func resetDrink() {
+    private func resetDrink(to targetPhase: GamePhase) {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
             currentMix = MojitoMix()
             jigger = JiggerState()
@@ -85,7 +84,7 @@ struct ContentView: View {
             isPouring = false
             pouringIngredientID = nil
             isTransferringJigger = false
-            phase = .mixing
+            phase = targetPhase
         }
     }
 }
@@ -539,6 +538,10 @@ private struct MixingStationView: View {
             actionPanel
         }
         .padding(.vertical, 14)
+        .onDisappear {
+            stopPouring()
+            isTransferringJigger = false
+        }
     }
 
     private var orderCard: some View {
@@ -570,6 +573,12 @@ private struct MixingStationView: View {
             Text(instructionText)
                 .font(.caption)
                 .foregroundStyle(.white.opacity(0.52))
+
+            if let active = jigger.activeIngredient, jigger.amount > 0 {
+                Text("量杯中还有 \(active.name) \(Int(jigger.amount.rounded()))ml，出杯会自动倒入杯中。")
+                    .font(.caption2)
+                    .foregroundStyle(Color(red: 0.95, green: 0.78, blue: 0.40))
+            }
         }
         .padding(16)
         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
@@ -659,8 +668,7 @@ private struct MixingStationView: View {
                 }
 
                 ActionButton(title: "出杯", systemImage: "checkmark.seal.fill", tint: Color(red: 0.26, green: 0.78, blue: 0.46)) {
-                    stopPouring()
-                    onServe()
+                    finalizeAndServe()
                 }
             }
 
@@ -775,6 +783,16 @@ private struct MixingStationView: View {
                 isTransferringJigger = false
             }
         }
+    }
+
+    private func finalizeAndServe() {
+        stopPouring()
+        if let ingredient = jigger.activeIngredient, jigger.amount > 0 {
+            currentMix.add(ingredient, amount: jigger.amount)
+            jigger.empty()
+            isTransferringJigger = false
+        }
+        onServe()
     }
 }
 
