@@ -175,12 +175,18 @@ private enum MojitoIngredient: String, CaseIterable, Identifiable {
         }
     }
 
-    var assetName: String? {
+    var assetName: String {
         switch self {
         case .whiteRum:
             "bottle_white_rum"
-        default:
-            nil
+        case .limeJuice:
+            "bottle_lime_juice"
+        case .syrup:
+            "bottle_syrup"
+        case .soda:
+            "bottle_soda"
+        case .mint:
+            "mint_leaf"
         }
     }
 }
@@ -1063,57 +1069,14 @@ private struct BarIngredientObjectView: View {
 
     @ViewBuilder
     private var ingredientArtwork: some View {
-        if let assetName = ingredient.assetName {
-            Image(assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 56, height: 74)
-                .shadow(color: .black.opacity(0.22), radius: 6, y: 3)
-        } else if ingredient == .mint {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(red: 0.24, green: 0.18, blue: 0.12))
-                    .frame(width: 54, height: 28)
-                    .offset(y: 20)
-
-                ForEach(0..<6, id: \.self) { index in
-                    Capsule()
-                        .fill(ingredient.tint.opacity(0.90))
-                        .frame(width: 12, height: 30)
-                        .rotationEffect(.degrees(Double(index * 28 - 64)))
-                        .offset(x: CGFloat(index - 3) * 6, y: CGFloat(index % 2) * 4)
-                }
-            }
-        } else {
-            VStack(spacing: 0) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(ingredient.tint.opacity(0.84))
-                    .frame(width: 18, height: 18)
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                ingredient.tint.opacity(0.72),
-                                ingredient.tint.opacity(0.36)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: ingredient == .soda ? 42 : 48, height: 56)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 7)
-                            .fill(.white.opacity(0.22))
-                            .frame(width: 28, height: 18)
-                    }
-                    .overlay(alignment: .leading) {
-                        Capsule()
-                            .fill(.white.opacity(0.24))
-                            .frame(width: 7, height: 42)
-                            .padding(.leading, 8)
-                    }
-            }
-        }
+        Image(ingredient.assetName)
+            .resizable()
+            .scaledToFit()
+            .frame(
+                width: ingredient == .mint ? 62 : 56,
+                height: ingredient == .mint ? 56 : 74
+            )
+            .shadow(color: .black.opacity(0.22), radius: 6, y: 3)
     }
 }
 
@@ -1395,6 +1358,10 @@ private struct CocktailGlassView: View {
                 mintLayer(width: glassWidth, height: glassHeight)
                     .padding(.bottom, glassHeight * 0.14)
 
+                if mix.amount(for: .limeJuice) > 0 {
+                    limeGarnish(width: glassWidth, height: glassHeight)
+                }
+
                 Image("highball_glass_empty")
                     .resizable()
                     .scaledToFit()
@@ -1431,9 +1398,11 @@ private struct CocktailGlassView: View {
     private func mintLayer(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
             ForEach(0..<min(mix.mintLeaves, 10), id: \.self) { index in
-                Capsule()
-                    .fill(Color(red: 0.15, green: 0.68, blue: 0.28).opacity(0.86))
-                    .frame(width: 10, height: 22)
+                Image("mint_leaf")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .opacity(0.90)
                     .rotationEffect(.degrees(Double(index * 31)))
                     .offset(
                         x: CGFloat((index % 4) - 2) * 18,
@@ -1442,6 +1411,17 @@ private struct CocktailGlassView: View {
             }
         }
         .frame(width: width, height: height * 0.46, alignment: .bottom)
+    }
+
+    private func limeGarnish(width: CGFloat, height: CGFloat) -> some View {
+        Image("lime_slice")
+            .resizable()
+            .scaledToFit()
+            .frame(width: width * 0.34, height: width * 0.34)
+            .rotationEffect(.degrees(-18))
+            .offset(x: width * 0.26, y: -height * 0.70)
+            .shadow(color: .black.opacity(0.22), radius: 5, y: 3)
+            .allowsHitTesting(false)
     }
 }
 
