@@ -174,6 +174,15 @@ private enum MojitoIngredient: String, CaseIterable, Identifiable {
         case .mint: Color(red: 0.18, green: 0.74, blue: 0.40)
         }
     }
+
+    var assetName: String? {
+        switch self {
+        case .whiteRum:
+            "bottle_white_rum"
+        default:
+            nil
+        }
+    }
 }
 
 private struct MojitoMix {
@@ -278,6 +287,15 @@ private struct JiggerState {
         }
 
         amount = min(capacity, amount + ingredient.pourAmount)
+    }
+
+    mutating func snapToNearbyMark(threshold: Double = 1.6) -> Bool {
+        guard let nearestMark, abs(amount - nearestMark) <= threshold else {
+            return false
+        }
+
+        amount = nearestMark
+        return true
     }
 
     mutating func empty() {
@@ -430,7 +448,7 @@ private struct BarCounterPreview: View {
             HStack(alignment: .bottom, spacing: 22) {
                 BottleView(color: Color(red: 0.84, green: 0.94, blue: 0.90), height: 150)
                 BottleView(color: Color(red: 0.38, green: 0.86, blue: 0.42), height: 120)
-                CocktailGlassView(mix: .preview, isShaking: false)
+                CocktailGlassView(mix: .preview, isShaking: false, motionTick: 0, fallingIceTick: 0, isFallingIceVisible: false)
                     .frame(width: 120, height: 190)
                 BottleView(color: Color(red: 0.96, green: 0.78, blue: 0.30), height: 132)
             }
@@ -486,6 +504,9 @@ private struct MixingStationView: View {
     @State private var pourPulse = false
     @State private var pourTickCount = 0
     @State private var lastJiggerMark: Double?
+    @State private var glassMotionTick = 0
+    @State private var fallingIceTick = 0
+    @State private var isFallingIceVisible = false
 
     let ingredients: [MojitoIngredient]
     let onServe: () -> Void
@@ -501,17 +522,56 @@ private struct MixingStationView: View {
 
             ZStack {
                 RoundedRectangle(cornerRadius: 28)
-                    .fill(.black.opacity(0.24))
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.09, green: 0.10, blue: 0.10).opacity(0.92),
+                                Color(red: 0.18, green: 0.11, blue: 0.07).opacity(0.92)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                     .overlay {
                         RoundedRectangle(cornerRadius: 28)
                             .stroke(.white.opacity(0.08), lineWidth: 1)
+                    }
+                    .overlay(alignment: .top) {
+                        Capsule()
+                            .fill(Color(red: 0.98, green: 0.76, blue: 0.34).opacity(0.20))
+                            .frame(width: 240, height: 18)
+                            .blur(radius: 18)
+                            .padding(.top, 20)
+                    }
+                    .overlay(alignment: .bottom) {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.30, green: 0.17, blue: 0.08),
+                                        Color(red: 0.14, green: 0.08, blue: 0.04)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: 58)
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 10)
+                            .shadow(color: .black.opacity(0.35), radius: 12, y: -4)
                     }
 
                 HStack(alignment: .bottom, spacing: 20) {
                     JiggerView(jigger: jigger, targetAmount: selectedIngredient.usesJigger ? selectedIngredient.targetAmount : nil)
                         .frame(width: 104, height: 230)
 
-                    CocktailGlassView(mix: currentMix, isShaking: isShaking)
+                    CocktailGlassView(
+                        mix: currentMix,
+                        isShaking: isShaking,
+                        motionTick: glassMotionTick,
+                        fallingIceTick: fallingIceTick,
+                        isFallingIceVisible: isFallingIceVisible
+                    )
                         .frame(width: 188, height: 290)
                 }
                 .padding(.top, 26)
@@ -534,7 +594,7 @@ private struct MixingStationView: View {
             .frame(height: 330)
             .padding(.horizontal, 18)
 
-            ingredientGrid
+            workbenchShelf
             actionPanel
         }
         .padding(.vertical, 14)
@@ -585,36 +645,42 @@ private struct MixingStationView: View {
         .padding(.horizontal, 18)
     }
 
-    private var ingredientGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-            ForEach(ingredients) { ingredient in
-                Button {
-                    selectedIngredientID = ingredient.id
-                } label: {
-                    VStack(spacing: 8) {
-                        Image(systemName: ingredient.icon)
-                            .font(.title3)
-                        Text(ingredient.name)
-                            .font(.caption.weight(.bold))
-                        Text("\(Int(currentMix.amount(for: ingredient)))/\(Int(ingredient.targetAmount))\(ingredient.unit)")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.62))
+    private var workbenchShelf: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("吧台材料架")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(.white.opacity(0.68))
+                Spacer()
+                Text("按住物件操作")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.42))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(ingredients) { ingredient in
+                        BarIngredientObjectView(
+                            ingredient: ingredient,
+                            amount: currentMix.amount(for: ingredient),
+                            isSelected: selectedIngredientID == ingredient.id,
+                            isActive: isPouring && pouringIngredientID == ingredient.id,
+                            onSelect: {
+                                selectedIngredientID = ingredient.id
+                            },
+                            onStart: {
+                                selectedIngredientID = ingredient.id
+                                startPouring(ingredient)
+                            },
+                            onStop: stopPouring
+                        )
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 78)
-                    .foregroundStyle(selectedIngredientID == ingredient.id ? .black : .white)
-                    .background(
-                        selectedIngredientID == ingredient.id
-                        ? ingredient.tint
-                        : .white.opacity(0.08),
-                        in: RoundedRectangle(cornerRadius: 14)
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(ingredient.tint.opacity(selectedIngredientID == ingredient.id ? 0 : 0.5), lineWidth: 1)
+
+                    IceBucketObjectView(count: currentMix.iceCount) {
+                        addIce()
                     }
                 }
-                .buttonStyle(.plain)
+                .padding(.vertical, 2)
             }
         }
         .padding(.horizontal, 18)
@@ -622,24 +688,6 @@ private struct MixingStationView: View {
 
     private var actionPanel: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                PourButton(
-                    title: selectedIngredient.usesJigger ? "倒入量杯" : (selectedIngredient == .mint ? "按住加入" : "直接倒入"),
-                    systemImage: selectedIngredient == .mint ? "leaf.fill" : "drop.fill",
-                    tint: selectedIngredient.tint,
-                    isActive: isPouring,
-                    onStart: { startPouring(selectedIngredient) },
-                    onStop: stopPouring
-                )
-
-                ActionButton(title: "加冰", systemImage: "cube.fill", tint: Color(red: 0.64, green: 0.88, blue: 1.0)) {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.66)) {
-                        currentMix.addIce()
-                    }
-                    hapticTick.toggle()
-                }
-            }
-
             HStack(spacing: 10) {
                 ActionButton(title: "量杯入杯", systemImage: "arrow.down.to.line.compact", tint: Color(red: 0.90, green: 0.78, blue: 0.52)) {
                     transferJiggerToGlass()
@@ -658,6 +706,7 @@ private struct MixingStationView: View {
                 ActionButton(title: "摇酒 \(currentMix.shakeCount)/3", systemImage: "hands.sparkles.fill", tint: Color(red: 0.95, green: 0.76, blue: 0.32)) {
                     stopPouring()
                     currentMix.shake()
+                    glassMotionTick += 1
                     hapticTick.toggle()
                     withAnimation(.linear(duration: 0.08).repeatCount(6, autoreverses: true)) {
                         isShaking = true
@@ -705,6 +754,22 @@ private struct MixingStationView: View {
         return selectedIngredient == .mint ? "薄荷不走量杯，按住按片加入。" : "苏打水用于补满，直接倒入杯中。"
     }
 
+    private func addIce() {
+        stopPouring()
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.66)) {
+            currentMix.addIce()
+            glassMotionTick += 1
+            fallingIceTick += 1
+            isFallingIceVisible = true
+        }
+        hapticTick.toggle()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.44) {
+            withAnimation(.easeOut(duration: 0.16)) {
+                isFallingIceVisible = false
+            }
+        }
+    }
+
     private func startPouring(_ ingredient: MojitoIngredient) {
         guard !isPouring else {
             return
@@ -732,6 +797,7 @@ private struct MixingStationView: View {
                             jigger.pour(ingredient)
                         } else {
                             currentMix.pour(ingredient)
+                            glassMotionTick += 1
                         }
                         pourPulse.toggle()
                     }
@@ -760,6 +826,9 @@ private struct MixingStationView: View {
         pourTask = nil
         isPouring = false
         pouringIngredientID = nil
+        if jigger.snapToNearbyMark() {
+            hapticTick.toggle()
+        }
         hapticTick.toggle()
     }
 
@@ -774,6 +843,7 @@ private struct MixingStationView: View {
         withAnimation(.spring(response: 0.34, dampingFraction: 0.74)) {
             isTransferringJigger = true
             currentMix.add(ingredient, amount: jigger.amount)
+            glassMotionTick += 1
         }
         hapticTick.toggle()
 
@@ -789,6 +859,7 @@ private struct MixingStationView: View {
         stopPouring()
         if let ingredient = jigger.activeIngredient, jigger.amount > 0 {
             currentMix.add(ingredient, amount: jigger.amount)
+            glassMotionTick += 1
             jigger.empty()
             isTransferringJigger = false
         }
@@ -810,6 +881,13 @@ private struct JiggerView: View {
 
             VStack(spacing: 8) {
                 ZStack(alignment: .bottom) {
+                    Image("jigger_empty")
+                        .resizable()
+                        .scaledToFit()
+                        .opacity(0.18)
+                        .frame(width: cupWidth * 1.95, height: cupHeight * 1.10)
+                        .offset(y: -cupHeight * 0.03)
+
                     RoundedRectangle(cornerRadius: cupWidth * 0.18)
                         .fill(.white.opacity(0.07))
                         .frame(width: cupWidth, height: cupHeight)
@@ -913,6 +991,187 @@ private struct JiggerTransferStreamView: View {
                 .shadow(color: ingredient.tint.opacity(0.45), radius: 12)
         }
         .allowsHitTesting(false)
+    }
+}
+
+private struct BarIngredientObjectView: View {
+    let ingredient: MojitoIngredient
+    let amount: Double
+    let isSelected: Bool
+    let isActive: Bool
+    let onSelect: () -> Void
+    let onStart: () -> Void
+    let onStop: () -> Void
+
+    @State private var didStart = false
+
+    var body: some View {
+        VStack(spacing: 7) {
+            ingredientArtwork
+                .frame(width: 58, height: 74)
+
+            VStack(spacing: 2) {
+                Text(ingredient.name)
+                    .font(.caption2.weight(.black))
+                    .lineLimit(1)
+                Text("\(Int(amount))/\(Int(ingredient.targetAmount))\(ingredient.unit)")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.56))
+            }
+        }
+        .frame(width: 84, height: 112)
+        .foregroundStyle(.white)
+        .background(
+            LinearGradient(
+                colors: [
+                    .white.opacity(isSelected ? 0.18 : 0.08),
+                    ingredient.tint.opacity(isSelected ? 0.20 : 0.06)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            ),
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(ingredient.tint.opacity(isSelected ? 0.85 : 0.25), lineWidth: isSelected ? 2 : 1)
+        }
+        .shadow(color: ingredient.tint.opacity(isActive ? 0.35 : 0.08), radius: isActive ? 12 : 4, y: 4)
+        .scaleEffect(isActive ? 0.97 : 1)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    guard !didStart else {
+                        return
+                    }
+
+                    didStart = true
+                    onStart()
+                }
+                .onEnded { _ in
+                    didStart = false
+                    onStop()
+                }
+        )
+        .onDisappear {
+            didStart = false
+            onStop()
+        }
+    }
+
+    @ViewBuilder
+    private var ingredientArtwork: some View {
+        if let assetName = ingredient.assetName {
+            Image(assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 56, height: 74)
+                .shadow(color: .black.opacity(0.22), radius: 6, y: 3)
+        } else if ingredient == .mint {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(red: 0.24, green: 0.18, blue: 0.12))
+                    .frame(width: 54, height: 28)
+                    .offset(y: 20)
+
+                ForEach(0..<6, id: \.self) { index in
+                    Capsule()
+                        .fill(ingredient.tint.opacity(0.90))
+                        .frame(width: 12, height: 30)
+                        .rotationEffect(.degrees(Double(index * 28 - 64)))
+                        .offset(x: CGFloat(index - 3) * 6, y: CGFloat(index % 2) * 4)
+                }
+            }
+        } else {
+            VStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(ingredient.tint.opacity(0.84))
+                    .frame(width: 18, height: 18)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                ingredient.tint.opacity(0.72),
+                                ingredient.tint.opacity(0.36)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: ingredient == .soda ? 42 : 48, height: 56)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(.white.opacity(0.22))
+                            .frame(width: 28, height: 18)
+                    }
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(.white.opacity(0.24))
+                            .frame(width: 7, height: 42)
+                            .padding(.leading, 8)
+                    }
+            }
+        }
+    }
+}
+
+private struct IceBucketObjectView: View {
+    let count: Int
+    let onAddIce: () -> Void
+
+    var body: some View {
+        Button(action: onAddIce) {
+            VStack(spacing: 7) {
+                ZStack(alignment: .bottom) {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.55, green: 0.76, blue: 0.86).opacity(0.55),
+                                    Color(red: 0.20, green: 0.28, blue: 0.34).opacity(0.82)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 58, height: 48)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(.white.opacity(0.24), lineWidth: 1)
+                        }
+
+                    HStack(spacing: 3) {
+                        ForEach(0..<3, id: \.self) { index in
+                            Image("ice_cube")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 18, height: 18)
+                                .rotationEffect(.degrees(Double(index * 14 - 10)))
+                        }
+                    }
+                    .offset(y: -22)
+                }
+                .frame(width: 58, height: 74)
+
+                VStack(spacing: 2) {
+                    Text("冰桶")
+                        .font(.caption2.weight(.black))
+                    Text("\(count)/6 颗")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.56))
+                }
+            }
+            .frame(width: 84, height: 112)
+            .foregroundStyle(.white)
+            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color(red: 0.64, green: 0.88, blue: 1.0).opacity(0.34), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -1078,6 +1337,9 @@ private struct BottlePourHead: View {
 private struct CocktailGlassView: View {
     let mix: MojitoMix
     let isShaking: Bool
+    let motionTick: Int
+    let fallingIceTick: Int
+    let isFallingIceVisible: Bool
 
     var body: some View {
         GeometryReader { proxy in
@@ -1085,30 +1347,9 @@ private struct CocktailGlassView: View {
             let glassWidth = size.width * 0.58
             let glassHeight = size.height * 0.86
             let liquidHeight = max(8, glassHeight * 0.64 * mix.fillRatio)
+            let sloshOffset = motionTick.isMultiple(of: 2) ? -5.0 : 5.0
 
             ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: glassWidth * 0.16)
-                    .fill(.white.opacity(0.08))
-                    .frame(width: glassWidth, height: glassHeight)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: glassWidth * 0.16)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.58), .white.opacity(0.10)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 3
-                            )
-                    }
-                    .overlay(alignment: .leading) {
-                        Capsule()
-                            .fill(.white.opacity(0.22))
-                            .frame(width: 10, height: glassHeight * 0.72)
-                            .padding(.leading, 18)
-                            .padding(.bottom, 16)
-                    }
-
                 RoundedRectangle(cornerRadius: glassWidth * 0.12)
                     .fill(
                         LinearGradient(
@@ -1125,31 +1366,58 @@ private struct CocktailGlassView: View {
                         Capsule()
                             .fill(.white.opacity(0.30))
                             .frame(height: 8)
+                            .offset(x: sloshOffset)
+                            .rotationEffect(.degrees(motionTick.isMultiple(of: 2) ? -2 : 2))
                             .padding(.horizontal, 8)
                             .padding(.top, 3)
                     }
                     .padding(.bottom, glassHeight * 0.07)
                     .animation(.spring(response: 0.4, dampingFraction: 0.76), value: mix.totalLiquid)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.42), value: motionTick)
+
+                if mix.amount(for: .soda) > 0 {
+                    BubbleLayer(
+                        width: glassWidth * 0.78,
+                        height: max(20, liquidHeight - 8),
+                        intensity: min(1, mix.amount(for: .soda) / MojitoIngredient.soda.targetAmount),
+                        motionTick: motionTick
+                    )
+                    .padding(.bottom, glassHeight * 0.10)
+                }
 
                 iceLayer(width: glassWidth, height: glassHeight)
                     .padding(.bottom, glassHeight * 0.10)
 
+                FallingIceView(tick: fallingIceTick, isVisible: isFallingIceVisible)
+                    .frame(width: glassWidth, height: glassHeight)
+                    .padding(.bottom, glassHeight * 0.05)
+
                 mintLayer(width: glassWidth, height: glassHeight)
                     .padding(.bottom, glassHeight * 0.14)
+
+                Image("highball_glass_empty")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: glassWidth * 1.52, height: glassHeight * 1.04)
+                    .offset(y: -glassHeight * 0.015)
+                    .allowsHitTesting(false)
             }
             .frame(width: size.width, height: size.height)
             .rotationEffect(.degrees(isShaking ? -4 : 0))
             .offset(x: isShaking ? 7 : 0)
             .animation(.linear(duration: 0.08), value: isShaking)
+            .animation(.spring(response: 0.30, dampingFraction: 0.55), value: motionTick)
         }
     }
 
     private func iceLayer(width: CGFloat, height: CGFloat) -> some View {
         ZStack {
             ForEach(0..<min(mix.iceCount, 10), id: \.self) { index in
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(.white.opacity(0.50))
-                    .frame(width: 24, height: 20)
+                Image("ice_cube")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .opacity(0.72)
                     .rotationEffect(.degrees(Double(index * 17)))
                     .offset(
                         x: CGFloat((index % 3) - 1) * 25,
@@ -1177,6 +1445,63 @@ private struct CocktailGlassView: View {
     }
 }
 
+private struct FallingIceView: View {
+    let tick: Int
+    let isVisible: Bool
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+
+            if tick > 0, isVisible {
+                Image("ice_cube")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 34, height: 34)
+                    .rotationEffect(.degrees(tick.isMultiple(of: 2) ? 18 : -18))
+                    .offset(
+                        x: size.width * 0.5 + CGFloat((tick % 3) - 1) * 20 - 13,
+                        y: size.height * 0.15
+                    )
+                    .transition(.asymmetric(
+                        insertion: .offset(y: -120).combined(with: .opacity),
+                        removal: .scale(scale: 0.6).combined(with: .opacity)
+                    ))
+                    .animation(.spring(response: 0.38, dampingFraction: 0.45), value: tick)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+private struct BubbleLayer: View {
+    let width: CGFloat
+    let height: CGFloat
+    let intensity: Double
+    let motionTick: Int
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<12, id: \.self) { index in
+                let progress = CGFloat((index * 17 + motionTick * 11) % 100) / 100
+                let bubbleSize = CGFloat(4 + (index % 4) * 2)
+                let xOffset = (CGFloat(index % 5) / 4 - 0.5) * width * 0.72
+                let yOffset = -height * progress
+
+                Circle()
+                    .stroke(.white.opacity(0.28 + 0.34 * intensity), lineWidth: 1.2)
+                    .background(Circle().fill(.white.opacity(0.05)))
+                    .frame(width: bubbleSize, height: bubbleSize)
+                    .offset(x: xOffset, y: yOffset)
+                    .opacity(0.35 + 0.5 * intensity)
+            }
+        }
+        .frame(width: width, height: height, alignment: .bottom)
+        .animation(.easeInOut(duration: 0.45), value: motionTick)
+        .allowsHitTesting(false)
+    }
+}
+
 private struct ScoreView: View {
     let mix: MojitoMix
     let score: MojitoScore
@@ -1187,7 +1512,7 @@ private struct ScoreView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            CocktailGlassView(mix: mix, isShaking: false)
+            CocktailGlassView(mix: mix, isShaking: false, motionTick: 0, fallingIceTick: 0, isFallingIceVisible: false)
                 .frame(width: 190, height: 260)
 
             VStack(spacing: 8) {
