@@ -1,7 +1,7 @@
 # mixcrit TestFlight 发布检查清单
 
 > 创建日期：2026-05-19
-> 当前版本：0.0.1
+> 当前版本：0.0.8
 > 项目：mixcrit
 > Bundle ID：cn.xiaolinstar.mixcrit
 
@@ -9,7 +9,7 @@
 
 ## 发布目标
 
-将 0.0.1 版本上传至 TestFlight，提供内部测试下载。
+将 0.0.8（P0.7 发布收口版）上传至 TestFlight，提供内部测试下载。
 
 ---
 
@@ -19,11 +19,11 @@
 |------|------|------|
 | Apple Developer 账号 | ✅ 已注册 | cn.xiaolinstar.mixcrit |
 | Bundle Identifier | ✅ 已配置 | cn.xiaolinstar.mixcrit |
-| Xcode 模拟器运行 | ✅ 正常 | 可在模拟器中运行 |
+| Xcode 模拟器运行 | ⏳ 待复验 | 当前机器未启用完整 Xcode，需在 Xcode 中重新构建 |
 | P0 原型验收清单 | ⏳ 待执行 | 见 `docs/p0-acceptance-checklist.md` |
 | App Store Connect App 记录 | ⏳ 待创建 | 需在 appstoreconnect.apple.com 创建 |
-| App Icon | ⏳ 待提供 | 需要 1024×1024 源文件 |
-| 启动屏 | ⏳ 待配置 | 需要配置 LaunchScreen |
+| App Icon | ✅ 已配置 | 已加入 1024×1024 PNG，正式发布前可继续替换为品牌终稿 |
+| 启动屏 | ✅ 已配置 | 使用 Xcode 自动生成 LaunchScreen |
 
 ---
 
@@ -42,17 +42,17 @@
    - **SKU**：mixcrit
 5. 点击「创建」
 
-### 步骤 2：提供 App Icon 源文件
+### 步骤 2：确认 App Icon
 
-需要提供 **1024×1024** 像素的 PNG 图片，发送给我（xingxiaolin）后，我会：
+当前已提供 **1024×1024** 像素的 PNG 占位图标。正式发布前如需品牌化终稿，可以替换同名资源：
 
-- [ ] 生成所有尺寸
-- [ ] 配置 Contents.json
-- [ ] 更新到项目中
+- [x] 生成 1024×1024 图标
+- [x] 配置 Contents.json
+- [x] 更新到项目中
 
-### 步骤 3：配置启动屏
+### 步骤 3：确认启动屏
 
-Xcode 需要启动屏配置。提供图标后一并处理。
+项目启用了 `INFOPLIST_KEY_UILaunchScreen_Generation = YES`，由 Xcode 自动生成启动屏。首次 Archive 前需在真机或模拟器确认启动画面没有明显违和。
 
 ### 步骤 4：Xcode Archive 并上传
 
@@ -81,9 +81,9 @@ Xcode 需要启动屏配置。提供图标后一并处理。
 | 序号 | 事项 | 负责人 | 状态 |
 |------|------|--------|------|
 | 1 | App Store Connect 创建 App | 用户 | ⏳ 待办 |
-| 2 | 提供 1024×1024 图标源文件 | 用户 | ⏳ 待办 |
-| 3 | 配置 App Icon 所有尺寸 | 我 | ⏳ 待办 |
-| 4 | 配置启动屏 | 我 | ⏳ 待办 |
+| 2 | 提供 1024×1024 图标源文件 | 我 | ✅ 已完成占位版 |
+| 3 | 配置 App Icon 所有尺寸 | 我 | ✅ 已完成 |
+| 4 | 配置启动屏 | 我 | ✅ 已完成自动生成配置 |
 | 5 | Xcode Archive | 用户 | ⏳ 待办 |
 | 6 | 上传至 App Store Connect | 用户 | ⏳ 待办 |
 | 7 | TestFlight 添加构建版本 | 用户 | ⏳ 待办 |
@@ -97,18 +97,17 @@ Xcode 需要启动屏配置。提供图标后一并处理。
 
 - **尺寸**：1024×1024 像素
 - **格式**：PNG（无透明背景）
-- **建议**：纯色背景 + 酒杯图标，或品牌 Logo
-- **发送方式**：直接发送图片文件
+- **当前状态**：已配置占位版
+- **建议**：正式上架前替换为品牌终稿，保持纯色背景 + 酒杯图标或品牌 Logo
 
 ---
 
 ## 下一步
 
 1. 用户在 App Store Connect 创建 App 记录
-2. 用户提供 1024×1024 图标源文件
-3. 我完成 App Icon 配置和启动屏配置
-4. 用户执行 Archive 并上传
-5. 用户在 TestFlight 完成发布
+2. 用户在 Xcode 中构建并执行 P0 验收清单
+3. 用户执行 Archive 并上传
+4. 用户在 TestFlight 完成发布
 
 ---
 

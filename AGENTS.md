@@ -2,7 +2,7 @@
 
 ## Project overview
 
-mixcrit is a native iOS (SwiftUI) cocktail-mixing simulation game prototype. The P0 prototype focuses on a single drink (Mojito). All game logic, models, views, and scoring live in `mixcrit/ContentView.swift`; the app entry point is `mixcrit/mixcritApp.swift`. There are no external dependencies, no backend, and no test targets.
+mixcrit is a native iOS (SwiftUI) cocktail-mixing simulation game prototype. The P0 prototype focuses on a single drink (Mojito). The app flow is coordinated by `mixcrit/ContentView.swift`; models live in `mixcrit/Models/`, scoring lives in `mixcrit/Logic/`, and SwiftUI screens/components live in `mixcrit/Views/`. The app entry point is `mixcrit/mixcritApp.swift`. There are no external dependencies, no backend, and no test targets.
 
 ## Cursor Cloud specific instructions
 
@@ -33,7 +33,10 @@ Per `README.md`: open `mixcrit.xcodeproj` in Xcode, select an iOS simulator, and
 | Path | Purpose |
 |------|---------|
 | `mixcrit/mixcritApp.swift` | App entry point (`@main`) |
-| `mixcrit/ContentView.swift` | All game logic, models, views, and scoring (~1250 lines) |
+| `mixcrit/ContentView.swift` | App flow and top-level state coordination |
+| `mixcrit/Models/` | Game phase, Mojito ingredient/mix/score, jigger state |
+| `mixcrit/Logic/` | Mojito scoring logic |
+| `mixcrit/Views/` | SwiftUI screens and reusable visual components |
 | `mixcrit/Assets.xcassets/` | Asset catalogs (colors, app icon) |
 | `mixcrit.xcodeproj/` | Xcode project configuration |
 | `docs/` | Product design and release documentation |
