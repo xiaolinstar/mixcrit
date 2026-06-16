@@ -70,7 +70,7 @@ extension MojitoMix {
     public static var preview: MojitoMix {
         var mix = MojitoMix()
         mix.amounts[MojitoIngredient.whiteRum.id] = 45
-        mix.amounts[MojitoIngredient.limeJuice.id] = 20
+        mix.amounts[MojitoIngredient.limeJuice.id] = 15
         mix.amounts[MojitoIngredient.syrup.id] = 15
         mix.amounts[MojitoIngredient.soda.id] = 90
         mix.amounts[MojitoIngredient.mint.id] = 8

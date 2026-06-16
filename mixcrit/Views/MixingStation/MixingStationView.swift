@@ -12,8 +12,6 @@ public struct MixingStationView: View {
 
     @State private var pourTask: Task<Void, Never>?
     @State private var pourPulse = false
-    @State private var pourTickCount = 0
-    @State private var lastJiggerMark: Double?
     @State private var glassMotionTick = 0
     @State private var fallingIceTick = 0
     @State private var isFallingIceVisible = false
@@ -68,7 +66,7 @@ public struct MixingStationView: View {
 
                 controlDock(layout: layout)
                     .frame(height: layout.controlDockHeight, alignment: .bottom)
-                    .padding(.bottom, layout.verticalPadding)
+                    .padding(.bottom, max(0, layout.verticalPadding - 4))
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
         }
@@ -169,6 +167,10 @@ public struct MixingStationView: View {
                 ActionButton(title: "加冰 \(currentMix.iceCount)/6", systemImage: "snowflake", tint: Color(red: 0.64, green: 0.88, blue: 1.0), layout: layout) {
                     addIce()
                 }
+
+                ActionButton(title: "清空量杯", systemImage: "xmark.circle.fill", tint: Color(white: 0.78), layout: layout) {
+                    clearJigger()
+                }
             }
 
             HStack(spacing: max(6, 10 * layout.scale)) {
@@ -188,36 +190,21 @@ public struct MixingStationView: View {
                 ActionButton(title: "出杯", systemImage: "checkmark.seal.fill", tint: Color(red: 0.26, green: 0.78, blue: 0.46), layout: layout) {
                     finalizeAndServe()
                 }
-            }
 
-            HStack(spacing: max(6, 10 * layout.scale)) {
                 Button(role: .destructive) {
-                    stopPouring()
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
-                        jigger.empty()
-                    }
-                    hapticTick.toggle()
+                    onReset()
                 } label: {
-                    Label("清空量杯", systemImage: "xmark.circle.fill")
-                        .font(.caption2.weight(.bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: layout.secondaryButtonHeight)
-                }
-                .buttonStyle(.bordered)
-                .tint(.white.opacity(0.75))
-
-                Button(role: .destructive, action: onReset) {
                     Label("重置这杯", systemImage: "arrow.counterclockwise")
-                        .font(.caption2.weight(.bold))
+                        .font(.system(size: max(9, 11 * layout.scale), weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
                         .frame(maxWidth: .infinity)
                         .frame(height: layout.secondaryButtonHeight)
+                        .foregroundStyle(.white.opacity(0.70))
+                        .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+                        .contentShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .buttonStyle(.bordered)
-                .tint(.white.opacity(0.75))
+                .buttonStyle(.plain)
             }
         }
         .padding(.top, layout.dockTopPadding)
@@ -265,22 +252,26 @@ public struct MixingStationView: View {
 
     private var orderStatusText: String {
         if let active = jigger.activeIngredient, jigger.amount > 0 {
-            return "当前：\(selectedIngredient.name) · 量杯 \(active.name) \(Int(jigger.amount.rounded()))ml · 出杯自动计入"
+            return "量杯：\(active.name) \(Int(jigger.amount.rounded()))ml · 点“量杯入杯”"
         }
 
-        return "当前：\(selectedIngredient.name) · 目标 \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)"
+        if selectedIngredient.usesJigger {
+            return "\(selectedIngredient.name)：点击装入 15ml 量杯 · 目标 \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)"
+        }
+
+        return "\(selectedIngredient.name)：点击加入 \(Int(selectedIngredient.stepAmount))\(selectedIngredient.unit) · 目标 \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)"
     }
 
     private var instructionText: String {
         if selectedIngredient.usesJigger {
             if let active = jigger.activeIngredient, !jigger.isEmpty {
-                return "量杯中：\(active.name) \(Int(jigger.amount.rounded()))ml · 到刻度会震动"
+                return "量杯中：\(active.name) \(Int(jigger.amount.rounded()))ml · 点“量杯入杯”加入成品杯"
             }
 
-            return "按住倒入量杯，看刻度控制用量；松手后点“量杯入杯”。"
+            return "点击原料装入 15ml 量杯，再点“量杯入杯”。"
         }
 
-        return selectedIngredient == .mint ? "薄荷不走量杯，按住按片加入。" : "苏打水用于补满，直接倒入杯中。"
+        return selectedIngredient == .mint ? "点击一次加入 2 片薄荷。" : "点击一次加入 30ml 苏打水。"
     }
 
     private func addIce() {
@@ -300,48 +291,31 @@ public struct MixingStationView: View {
     }
 
     private func startPouring(_ ingredient: MojitoIngredient) {
-        guard !isPouring else {
-            return
-        }
-
         pourTask?.cancel()
-        pourTickCount = 0
-        lastJiggerMark = jigger.nearestMark
         isPouring = true
         pouringIngredientID = ingredient.id
         pourPulse.toggle()
+
+        withAnimation(.spring(response: 0.22, dampingFraction: 0.72)) {
+            if ingredient.usesJigger {
+                guard jigger.isEmpty || jigger.ingredientID == ingredient.id else {
+                    hapticTick.toggle()
+                    return
+                }
+
+                jigger.fillUnit(with: ingredient)
+            } else {
+                currentMix.add(ingredient)
+                glassMotionTick += 1
+            }
+            pourPulse.toggle()
+        }
         hapticTick.toggle()
 
-        pourTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(145))
-
-                await MainActor.run {
-                    guard isPouring, pouringIngredientID == ingredient.id else {
-                        return
-                    }
-
-                    withAnimation(.spring(response: 0.20, dampingFraction: 0.72)) {
-                        if ingredient.usesJigger {
-                            jigger.pour(ingredient)
-                        } else {
-                            currentMix.pour(ingredient)
-                            glassMotionTick += 1
-                        }
-                        pourPulse.toggle()
-                    }
-
-                    pourTickCount += 1
-                    if ingredient.usesJigger {
-                        let newMark = jigger.nearestMark
-                        if let newMark, newMark != lastJiggerMark, abs(jigger.amount - newMark) <= ingredient.pourAmount {
-                            lastJiggerMark = newMark
-                            hapticTick.toggle()
-                        }
-                    } else if pourTickCount.isMultiple(of: 4) {
-                        hapticTick.toggle()
-                    }
-                }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (ingredient.usesJigger ? 0.46 : 0.26)) {
+            if pouringIngredientID == ingredient.id {
+                isPouring = false
+                pouringIngredientID = nil
             }
         }
     }
@@ -355,8 +329,13 @@ public struct MixingStationView: View {
         pourTask = nil
         isPouring = false
         pouringIngredientID = nil
-        if jigger.snapToNearbyMark() {
-            hapticTick.toggle()
+        hapticTick.toggle()
+    }
+
+    private func clearJigger() {
+        stopPouring()
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+            jigger.empty()
         }
         hapticTick.toggle()
     }

@@ -70,6 +70,7 @@ P0.4 的目标是把调酒台从“按钮表单”调整为“吧台物件操作
 | `bottle_soda` | 已生成并接入 | 用于苏打水材料物件 |
 | `mint_leaf` | 已生成并接入 | 用于薄荷材料物件和杯中薄荷反馈 |
 | `lime_slice` | 已生成并接入 | 用于青柠汁加入后的杯口装饰 |
+| `highball_mojito_full` | P0.8 已生成并接入 | 首页写实 Mojito 成品杯主视觉 |
 
 生成方式：
 
@@ -94,6 +95,26 @@ P0.4 的目标是把调酒台从“按钮表单”调整为“吧台物件操作
 4. 冰块
 5. Mojito 剩余材料
 6. 吧台背景
+
+## 8. P0.8 写实资产替换记录
+
+更新时间：2026-06-16
+
+已替换：
+
+- `jigger_empty`：替换为写实金属 jigger 透明 PNG。
+- `highball_mojito_full`：新增写实 Mojito 成品杯透明 PNG，用于首页预览。
+- 首页 `BarCounterPreview`：从插画式瓶子/吧台预览改为写实 jigger + 写实 Mojito 成品杯。
+
+暂缓：
+
+- `highball_glass_empty` 暂不替换。原因是透明玻璃资产使用 chroma-key 去背景后容易保留背景色折射，生成结果带明显洋红色玻璃反光，直接替换会比当前版本更差。
+
+后续建议：
+
+- 若要让调酒页成品杯达到参考图质感，需要使用真正透明背景的玻璃素材，或手工/专业工具制作分层资产。
+- 成品杯可拆成 `glass_shell`、`mojito_liquid`、`ice_layer`、`mint_layer`、`lime_layer`、`bubble_layer`，由 SpriteKit 按进度显示。
+- 底部原料瓶下一步统一成同一摄影光源和透视角度。
 
 ## 6. 交互优化方向
 

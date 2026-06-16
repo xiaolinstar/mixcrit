@@ -4,8 +4,8 @@ public struct JiggerState {
     public var ingredientID: String?
     public var amount: Double = 0
 
-    public let capacity: Double = 60
-    public let marks: [Double] = [15, 30, 45, 60]
+    public let capacity: Double = 15
+    public let marks: [Double] = [15]
 
     public var fillRatio: Double {
         min(amount / capacity, 1)
@@ -36,6 +36,11 @@ public struct JiggerState {
         }
 
         amount = min(capacity, amount + ingredient.pourAmount)
+    }
+
+    public mutating func fillUnit(with ingredient: MojitoIngredient) {
+        ingredientID = ingredient.id
+        amount = capacity
     }
 
     public mutating func snapToNearbyMark(threshold: Double = 1.6) -> Bool {

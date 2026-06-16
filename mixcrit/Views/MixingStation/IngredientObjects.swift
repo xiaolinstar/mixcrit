@@ -10,8 +10,6 @@ public struct BarIngredientObjectView: View {
     public let onStart: () -> Void
     public let onStop: () -> Void
 
-    @State private var didStart = false
-
     public init(
         ingredient: MojitoIngredient,
         amount: Double,
@@ -32,29 +30,33 @@ public struct BarIngredientObjectView: View {
         self.onStop = onStop
     }
 
-    private var artworkHeight: CGFloat { layout.ingredientRowHeight * 0.68 }
-    private var artworkWidth: CGFloat { layout.ingredientRowHeight * 0.62 }
+    private var artworkHeight: CGFloat { layout.ingredientRowHeight * 0.78 }
+    private var artworkWidth: CGFloat { layout.ingredientRowHeight * 0.72 }
 
     public var body: some View {
-        VStack(spacing: layout.isUltraCompact ? 1 : 3) {
+        VStack(spacing: layout.isUltraCompact ? 0 : 2) {
             ingredientArtwork
                 .frame(width: artworkWidth, height: artworkHeight)
 
             VStack(spacing: 1) {
                 Text(ingredient.name)
-                    .font(.caption2.weight(.black))
+                    .font(.system(size: max(9, 11 * layout.scale), weight: .black, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                Text("\(Int(amount))/\(Int(ingredient.targetAmount))\(ingredient.unit)")
-                    .font(.system(size: max(8, 10 * layout.scale), weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.56))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                HStack(spacing: 3) {
+                    Text("已加 \(Int(amount))\(ingredient.unit)")
+                        .foregroundStyle(ingredient.tint)
+                    Text("目标 \(Int(ingredient.targetAmount))\(ingredient.unit)")
+                        .foregroundStyle(.white.opacity(0.58))
+                }
+                .font(.system(size: max(7, 8 * layout.scale), weight: .semibold, design: .rounded))
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.white)
-        .padding(.vertical, layout.isUltraCompact ? 3 : 5)
+        .padding(.vertical, layout.isUltraCompact ? 2 : 3)
         .background(
             LinearGradient(
                 colors: [
@@ -73,25 +75,9 @@ public struct BarIngredientObjectView: View {
         .shadow(color: ingredient.tint.opacity(isActive ? 0.35 : 0.08), radius: isActive ? 10 : 3, y: 3)
         .scaleEffect(isActive ? 0.97 : 1)
         .contentShape(Rectangle())
-        .onTapGesture(perform: onSelect)
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !didStart else {
-                        return
-                    }
-
-                    didStart = true
-                    onStart()
-                }
-                .onEnded { _ in
-                    didStart = false
-                    onStop()
-                }
-        )
-        .onDisappear {
-            didStart = false
-            onStop()
+        .onTapGesture {
+            onSelect()
+            onStart()
         }
     }
 

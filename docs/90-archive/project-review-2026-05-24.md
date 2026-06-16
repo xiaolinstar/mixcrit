@@ -58,8 +58,8 @@
 ### 2.4 文档完整性：A
 
 **优点：**
-- 产品规划（product-plan.md）非常完整：定位、用户、三层架构、MVP循环、动画规划、数据设计一应俱全
-- 版本发布计划（release-plan.md）SemVer 规范、P0~P3 路线清晰
+- 产品规划（`docs/10-product/product-plan.md`）非常完整：定位、用户、三层架构、MVP循环、动画规划、数据设计一应俱全
+- 版本发布计划（`docs/30-releases/release-plan.md`）SemVer 规范、P0~P3 路线清晰
 - P0 验收清单、发布清单结构化，可直接执行
 
 **问题：**
@@ -100,7 +100,7 @@
 | 事项 | 执行环境 | 说明 |
 |------|---------|------|
 | Xcode 构建验证 | macOS + Xcode | 打开 .xcodeproj，选模拟器，Cmd+R |
-| 执行 P0 验收清单 | 模拟器/真机 | 按 p0-acceptance-checklist.md 逐项过 |
+| 执行 P0 验收清单 | 模拟器/真机 | 按 `docs/40-qa/p0-acceptance-checklist.md` 逐项过 |
 | App Store Connect 创建 App | 浏览器 | 需要 Apple Developer 账号 |
 | Archive + Upload TestFlight | Xcode | Product → Archive → Distribute App |
 

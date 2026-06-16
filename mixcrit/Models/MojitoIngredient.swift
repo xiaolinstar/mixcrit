@@ -41,16 +41,17 @@ public enum MojitoIngredient: String, CaseIterable, Identifiable {
 
     public var stepAmount: Double {
         switch self {
+        case .soda: 30
         case .mint: 2
-        default: 5
+        default: 15
         }
     }
 
     public var pourAmount: Double {
         switch self {
-        case .soda: 6
-        case .mint: 1
-        default: 1.5
+        case .soda: 30
+        case .mint: 2
+        default: 15
         }
     }
 

@@ -20,40 +20,30 @@ public struct MixingSceneLayout {
         )
     }
 
-    public var counterRect: CGRect {
-        let rect = stageRect
-        return CGRect(
-            x: rect.minX + rect.width * 0.05,
-            y: rect.minY + rect.height * 0.08,
-            width: rect.width * 0.90,
-            height: rect.height * 0.24
-        )
-    }
-
     public var toolBaselineY: CGFloat {
-        counterRect.maxY + stageRect.height * 0.08
+        stageRect.minY + stageRect.height * 0.17
     }
 
     public var jiggerSize: CGSize {
-        let height = min(stageRect.height * 0.52, stageRect.width * 0.60)
-        return CGSize(width: height * 0.34, height: height)
+        let height = min(stageRect.height * 0.76, stageRect.width * 0.84)
+        return CGSize(width: height * 0.38, height: height)
     }
 
     public var glassSize: CGSize {
-        let height = min(stageRect.height * 0.50, stageRect.width * 0.56)
-        return CGSize(width: height * 0.42, height: height)
+        let height = min(stageRect.height * 0.78, stageRect.width * 0.84)
+        return CGSize(width: height * 0.46, height: height)
     }
 
     public var jiggerCenter: CGPoint {
         CGPoint(
-            x: stageRect.minX + stageRect.width * 0.25,
+            x: stageRect.minX + stageRect.width * 0.32,
             y: toolBaselineY + jiggerSize.height * 0.50
         )
     }
 
     public var glassCenter: CGPoint {
         CGPoint(
-            x: stageRect.minX + stageRect.width * 0.68,
+            x: stageRect.minX + stageRect.width * 0.70,
             y: toolBaselineY + glassSize.height * 0.50
         )
     }

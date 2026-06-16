@@ -9,7 +9,7 @@
 
 ## 发布目标
 
-将 0.0.8（P0.7 发布收口版）上传至 TestFlight，提供内部测试下载。
+0.0.8（P0.7 发布收口版）已上传至 TestFlight，作为首个内部/外部测试基线版本。
 
 ---
 
@@ -19,11 +19,12 @@
 |------|------|------|
 | Apple Developer 账号 | ✅ 已注册 | cn.xiaolinstar.mixcrit |
 | Bundle Identifier | ✅ 已配置 | cn.xiaolinstar.mixcrit |
-| Xcode 模拟器运行 | ⏳ 待复验 | 当前机器未启用完整 Xcode，需在 Xcode 中重新构建 |
-| P0 原型验收清单 | ⏳ 待执行 | 见 `docs/p0-acceptance-checklist.md` |
-| App Store Connect App 记录 | ⏳ 待创建 | 需在 appstoreconnect.apple.com 创建 |
+| Xcode 构建与 Archive | ✅ 已完成 | 0.0.8 (8) 已上传 Apple |
+| P0 原型验收清单 | ⏳ 待执行 | 见 `docs/40-qa/p0-acceptance-checklist.md` |
+| App Store Connect App 记录 | ✅ 已创建 | TestFlight 已接收构建 |
 | App Icon | ✅ 已配置 | 已加入 1024×1024 PNG，正式发布前可继续替换为品牌终稿 |
 | 启动屏 | ✅ 已配置 | 使用 Xcode 自动生成 LaunchScreen |
+| 出口合规 | ✅ 已处理 | 当前版本不使用自定义加密 |
 
 ---
 
@@ -80,14 +81,14 @@
 
 | 序号 | 事项 | 负责人 | 状态 |
 |------|------|--------|------|
-| 1 | App Store Connect 创建 App | 用户 | ⏳ 待办 |
+| 1 | App Store Connect 创建 App | 用户 | ✅ 已完成 |
 | 2 | 提供 1024×1024 图标源文件 | 我 | ✅ 已完成占位版 |
 | 3 | 配置 App Icon 所有尺寸 | 我 | ✅ 已完成 |
 | 4 | 配置启动屏 | 我 | ✅ 已完成自动生成配置 |
-| 5 | Xcode Archive | 用户 | ⏳ 待办 |
-| 6 | 上传至 App Store Connect | 用户 | ⏳ 待办 |
-| 7 | TestFlight 添加构建版本 | 用户 | ⏳ 待办 |
-| 8 | 提交内部/外部测试 | 用户 | ⏳ 待办 |
+| 5 | Xcode Archive | 用户 | ✅ 已完成 |
+| 6 | 上传至 App Store Connect | 用户 | ✅ 已完成 |
+| 7 | TestFlight 添加构建版本 | 用户 | ✅ 已完成 |
+| 8 | 提交内部/外部测试 | 用户 | ✅ 已完成 |
 
 ---
 
@@ -104,10 +105,11 @@
 
 ## 下一步
 
-1. 用户在 App Store Connect 创建 App 记录
-2. 用户在 Xcode 中构建并执行 P0 验收清单
-3. 用户执行 Archive 并上传
-4. 用户在 TestFlight 完成发布
+1. 收集 0.0.8 (8) 首轮 TestFlight 反馈
+2. 按 `docs/30-releases/p0.8-iteration-plan.md` 规划修正 P0.8
+3. 按 `docs/00-overview/spec-development-process.md` 为 P0.8 关键改动补齐 Spec
+4. 将下一版提升为 0.0.9，build 号提升为 9
+5. Archive 并上传 0.0.9 (9)
 
 ---
 

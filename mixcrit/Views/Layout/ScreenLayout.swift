@@ -42,37 +42,43 @@ public struct ScreenLayout {
     public var isCompact: Bool { tier != .regular }
     public var isUltraCompact: Bool { tier == .ultraCompact }
 
-    public var horizontalPadding: CGFloat { 12 + 6 * scale }
-    public var sectionSpacing: CGFloat { max(4, 8 * scale) }
-    public var verticalPadding: CGFloat { max(2, 6 * scale) }
+    public var horizontalPadding: CGFloat { 10 + 6 * scale }
+    public var sectionSpacing: CGFloat { max(3, 6 * scale) }
+    public var verticalPadding: CGFloat { max(1, 4 * scale) }
 
     public var actionRowSpacing: CGFloat {
-        max(4, 6 * scale)
+        max(3, 4 * scale)
     }
 
     public var orderCardHeight: CGFloat {
         if isUltraCompact {
-            return 62
+            return 58
         }
         if isCompact {
-            return 72
+            return 66
         }
-        return 88
+        return 78
     }
 
     public var controlDockHeight: CGFloat {
-        ingredientRowHeight + actionButtonHeight * 2 + secondaryButtonHeight + actionRowSpacing * 3 + dockTopPadding
+        ingredientRowHeight + actionButtonHeight * 2 + actionRowSpacing * 2 + dockTopPadding
     }
 
-    public var actionButtonHeight: CGFloat { max(28, 34 * scale) }
-    public var secondaryButtonHeight: CGFloat { max(22, 26 * scale) }
+    public var actionButtonHeight: CGFloat { max(24, 28 * scale) }
+    public var secondaryButtonHeight: CGFloat { max(20, 22 * scale) }
 
     public var ingredientRowHeight: CGFloat {
-        min(isUltraCompact ? 68 : 84, max(60, 80 * scale))
+        if isUltraCompact {
+            return min(82, max(72, 98 * scale))
+        }
+        if isCompact {
+            return min(96, max(84, 104 * scale))
+        }
+        return min(108, max(96, 108 * scale))
     }
 
     public var dockTopPadding: CGFloat {
-        max(6, 8 * scale)
+        max(4, 6 * scale)
     }
 
     public var stageMinHeight: CGFloat {
