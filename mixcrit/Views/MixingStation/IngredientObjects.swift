@@ -30,47 +30,53 @@ public struct BarIngredientObjectView: View {
         self.onStop = onStop
     }
 
-    private var artworkHeight: CGFloat { layout.ingredientRowHeight * 0.78 }
-    private var artworkWidth: CGFloat { layout.ingredientRowHeight * 0.72 }
+    private var artworkHeight: CGFloat { layout.ingredientRowHeight * 0.84 }
+    private var artworkWidth: CGFloat {
+        min(layout.ingredientRowHeight * 0.82, layout.ingredientItemWidth * 0.90)
+    }
 
     public var body: some View {
-        VStack(spacing: layout.isUltraCompact ? 0 : 2) {
+        VStack(spacing: layout.isUltraCompact ? 0 : 1) {
             ingredientArtwork
                 .frame(width: artworkWidth, height: artworkHeight)
 
             VStack(spacing: 1) {
                 Text(ingredient.name)
-                    .font(.system(size: max(9, 11 * layout.scale), weight: .black, design: .rounded))
+                    .font(.system(size: max(9, 10.5 * layout.scale), weight: .black, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                HStack(spacing: 3) {
-                    Text("已加 \(Int(amount))\(ingredient.unit)")
-                        .foregroundStyle(ingredient.tint)
-                    Text("目标 \(Int(ingredient.targetAmount))\(ingredient.unit)")
-                        .foregroundStyle(.white.opacity(0.58))
-                }
-                .font(.system(size: max(7, 8 * layout.scale), weight: .semibold, design: .rounded))
+                Text("已加 \(Int(amount))\(ingredient.unit)")
+                    .foregroundStyle(ingredient.tint)
+                    .font(.system(size: max(8, 8.8 * layout.scale), weight: .semibold, design: .rounded))
                 .lineLimit(1)
-                .minimumScaleFactor(0.55)
+                .minimumScaleFactor(0.70)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
         .foregroundStyle(.white)
-        .padding(.vertical, layout.isUltraCompact ? 2 : 3)
+        .padding(.vertical, layout.isUltraCompact ? 1 : 2)
+        .padding(.horizontal, 2)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .background(
             LinearGradient(
                 colors: [
-                    .white.opacity(isSelected ? 0.20 : 0.08),
-                    ingredient.tint.opacity(isSelected ? 0.24 : 0.07)
+                    .white.opacity(isSelected ? 0.18 : 0.06),
+                    ingredient.tint.opacity(isSelected ? 0.26 : 0.08)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             ),
-            in: RoundedRectangle(cornerRadius: 8)
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(ingredient.tint.opacity(isSelected ? 0.85 : 0.25), lineWidth: isSelected ? 2 : 1)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(.white.opacity(isSelected ? 0.42 : 0.20), lineWidth: isSelected ? 1.4 : 0.8)
+        }
+        .overlay(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(ingredient.tint.opacity(isSelected ? 0.80 : 0.24), lineWidth: isSelected ? 1.5 : 0.8)
+                .blendMode(.plusLighter)
         }
         .shadow(color: ingredient.tint.opacity(isActive ? 0.35 : 0.08), radius: isActive ? 10 : 3, y: 3)
         .scaleEffect(isActive ? 0.97 : 1)

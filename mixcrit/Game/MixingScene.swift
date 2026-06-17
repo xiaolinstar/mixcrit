@@ -5,7 +5,11 @@ public final class MixingScene: SKScene {
     private var currentState: MixingSceneState?
 
     private let stageNode = SKShapeNode()
+    private let ambientGlowNode = SKShapeNode()
     private let glowNode = SKShapeNode()
+    private let surfaceNode = SKShapeNode()
+    private let jiggerShadowNode = SKShapeNode()
+    private let glassShadowNode = SKShapeNode()
     private let transferArrowNode = SKShapeNode()
     private let jiggerGroup = SKNode()
     private let jiggerFeedbackNode = SKShapeNode()
@@ -16,6 +20,7 @@ public final class MixingScene: SKScene {
     private let glassLiquidNode = SKShapeNode()
     private let glassShineNode = SKShapeNode()
     private let iceLayerNode = SKNode()
+    private let limeLayerNode = SKNode()
     private let mintLayerNode = SKNode()
     private let bubbleLayerNode = SKNode()
     private let transferGuideNode = SKShapeNode()
@@ -67,9 +72,13 @@ public final class MixingScene: SKScene {
         }
 
         addChild(stageNode)
+        addChild(ambientGlowNode)
         addChild(glowNode)
+        addChild(surfaceNode)
         addChild(transferGuideNode)
         addChild(transferArrowNode)
+        addChild(jiggerShadowNode)
+        addChild(glassShadowNode)
         addChild(jiggerGroup)
         addChild(glassGroup)
         addChild(pourStreamNode)
@@ -81,15 +90,20 @@ public final class MixingScene: SKScene {
 
         glassGroup.addChild(glassLiquidNode)
         glassGroup.addChild(bubbleLayerNode)
+        glassGroup.addChild(limeLayerNode)
         glassGroup.addChild(iceLayerNode)
         glassGroup.addChild(mintLayerNode)
         glassGroup.addChild(glassShineNode)
         glassGroup.addChild(glassImageNode)
 
         stageNode.zPosition = 0
-        glowNode.zPosition = 1
+        ambientGlowNode.zPosition = 1
+        glowNode.zPosition = 2
+        surfaceNode.zPosition = 2
         transferGuideNode.zPosition = 3
         transferArrowNode.zPosition = 3
+        jiggerShadowNode.zPosition = 3
+        glassShadowNode.zPosition = 3
         jiggerGroup.zPosition = 4
         glassGroup.zPosition = 4
         pourStreamNode.zPosition = 7
@@ -114,23 +128,76 @@ public final class MixingScene: SKScene {
             cornerHeight: max(20, stageRect.width * 0.055),
             transform: nil
         )
-        stageNode.fillColor = UIColor(red: 0.08, green: 0.09, blue: 0.08, alpha: 0.96)
-        stageNode.strokeColor = UIColor(white: 1, alpha: 0.10)
+        stageNode.fillColor = UIColor(red: 0.055, green: 0.052, blue: 0.046, alpha: 0.98)
+        stageNode.strokeColor = UIColor(red: 0.86, green: 0.73, blue: 0.52, alpha: 0.16)
         stageNode.lineWidth = 1
 
-        glowNode.path = CGPath(ellipseIn: CGRect(
-            x: stageRect.midX - stageRect.width * 0.22,
-            y: stageRect.maxY - stageRect.height * 0.20,
-            width: stageRect.width * 0.44,
-            height: stageRect.height * 0.09
+        ambientGlowNode.path = CGPath(ellipseIn: CGRect(
+            x: stageRect.midX - stageRect.width * 0.42,
+            y: stageRect.midY - stageRect.height * 0.16,
+            width: stageRect.width * 0.84,
+            height: stageRect.height * 0.34
         ), transform: nil)
-        glowNode.fillColor = UIColor(white: 1, alpha: 0.035)
+        ambientGlowNode.fillColor = UIColor(red: 0.95, green: 0.78, blue: 0.45, alpha: 0.045)
+        ambientGlowNode.strokeColor = .clear
+
+        glowNode.path = CGPath(ellipseIn: CGRect(
+            x: stageRect.midX - stageRect.width * 0.32,
+            y: stageRect.maxY - stageRect.height * 0.23,
+            width: stageRect.width * 0.64,
+            height: stageRect.height * 0.13
+        ), transform: nil)
+        glowNode.fillColor = UIColor(white: 1, alpha: 0.05)
         glowNode.strokeColor = .clear
+
+        let surfaceY = layout.toolBaselineY - stageRect.height * 0.035
+        surfaceNode.path = CGPath(
+            roundedRect: CGRect(
+                x: stageRect.minX + stageRect.width * 0.08,
+                y: surfaceY,
+                width: stageRect.width * 0.84,
+                height: max(1.2, stageRect.height * 0.006)
+            ),
+            cornerWidth: 2,
+            cornerHeight: 2,
+            transform: nil
+        )
+        surfaceNode.fillColor = UIColor(white: 1, alpha: 0.09)
+        surfaceNode.strokeColor = .clear
+
+        layoutShadow(
+            node: jiggerShadowNode,
+            center: CGPoint(x: layout.jiggerCenter.x, y: surfaceY + stageRect.height * 0.008),
+            width: layout.jiggerSize.width * 1.35,
+            height: layout.jiggerSize.height * 0.075,
+            alpha: 0.30
+        )
+        layoutShadow(
+            node: glassShadowNode,
+            center: CGPoint(x: layout.glassCenter.x, y: surfaceY + stageRect.height * 0.008),
+            width: layout.glassSize.width * 1.70,
+            height: layout.glassSize.height * 0.07,
+            alpha: 0.26
+        )
 
         jiggerGroup.position = layout.jiggerCenter
         glassGroup.position = layout.glassCenter
         layoutJigger(size: layout.jiggerSize)
         layoutGlass(size: layout.glassSize)
+    }
+
+    private func layoutShadow(node: SKShapeNode, center: CGPoint, width: CGFloat, height: CGFloat, alpha: CGFloat) {
+        node.path = CGPath(
+            ellipseIn: CGRect(
+                x: center.x - width / 2,
+                y: center.y - height / 2,
+                width: width,
+                height: height
+            ),
+            transform: nil
+        )
+        node.fillColor = UIColor(white: 0, alpha: alpha)
+        node.strokeColor = .clear
     }
 
     private func layoutJigger(size: CGSize) {
@@ -157,7 +224,7 @@ public final class MixingScene: SKScene {
     }
 
     private func layoutGlass(size: CGSize) {
-        glassImageNode.size = CGSize(width: size.width * 1.78, height: size.height * 1.08)
+        glassImageNode.size = CGSize(width: size.width * 1.08, height: size.height * 1.08)
         glassImageNode.position = .zero
         glassImageNode.zPosition = 4
 
@@ -229,11 +296,12 @@ public final class MixingScene: SKScene {
             cornerHeight: glassSize.width * 0.08,
             transform: nil
         )
-        glassLiquidNode.fillColor = UIColor(red: 0.68, green: 0.90, blue: 0.72, alpha: 0.44)
+        glassLiquidNode.fillColor = UIColor(red: 0.70, green: 0.86, blue: 0.58, alpha: 0.48)
         glassLiquidNode.strokeColor = .clear
         glassLiquidNode.zPosition = 1
 
         rebuildIce(count: state.iceCount, glassSize: glassSize)
+        rebuildLime(isVisible: state.hasLime, glassSize: glassSize)
         rebuildMint(count: state.mintLeaves, glassSize: glassSize)
         rebuildBubbles(isVisible: state.hasSoda, glassSize: glassSize)
     }
@@ -342,7 +410,7 @@ public final class MixingScene: SKScene {
             return
         }
 
-        let cubeSize = glassSize.width * 0.28
+        let cubeSize = glassSize.width * 0.31
         for index in 0..<min(count, 8) {
             let node = SKSpriteNode(imageNamed: "ice_cube")
             node.size = CGSize(width: cubeSize, height: cubeSize)
@@ -357,13 +425,29 @@ public final class MixingScene: SKScene {
         iceLayerNode.zPosition = 2
     }
 
+    private func rebuildLime(isVisible: Bool, glassSize: CGSize) {
+        limeLayerNode.removeAllChildren()
+        guard isVisible else {
+            return
+        }
+
+        let node = SKSpriteNode(imageNamed: "lime_slice")
+        let sliceSize = glassSize.width * 0.33
+        node.size = CGSize(width: sliceSize, height: sliceSize)
+        node.alpha = 0.92
+        node.zRotation = -0.42
+        node.position = CGPoint(x: glassSize.width * 0.17, y: -glassSize.height * 0.13)
+        limeLayerNode.addChild(node)
+        limeLayerNode.zPosition = 3
+    }
+
     private func rebuildMint(count: Int, glassSize: CGSize) {
         mintLayerNode.removeAllChildren()
         guard count > 0 else {
             return
         }
 
-        let leafSize = glassSize.width * 0.22
+        let leafSize = glassSize.width * 0.24
         for index in 0..<min(count, 8) {
             let node = SKSpriteNode(imageNamed: "mint_leaf")
             node.size = CGSize(width: leafSize, height: leafSize)
@@ -384,13 +468,13 @@ public final class MixingScene: SKScene {
             return
         }
 
-        for index in 0..<7 {
-            let bubble = SKShapeNode(circleOfRadius: max(1.5, glassSize.width * 0.025))
-            bubble.fillColor = UIColor(white: 1, alpha: 0.44)
+        for index in 0..<10 {
+            let bubble = SKShapeNode(circleOfRadius: max(1.2, glassSize.width * (index % 2 == 0 ? 0.022 : 0.016)))
+            bubble.fillColor = UIColor(white: 1, alpha: 0.42)
             bubble.strokeColor = .clear
             bubble.position = CGPoint(
-                x: CGFloat(index % 3 - 1) * glassSize.width * 0.13,
-                y: -glassSize.height * 0.24 + CGFloat(index) * glassSize.height * 0.055
+                x: CGFloat(index % 4 - 2) * glassSize.width * 0.10 + glassSize.width * 0.04,
+                y: -glassSize.height * 0.25 + CGFloat(index) * glassSize.height * 0.043
             )
             bubbleLayerNode.addChild(bubble)
         }

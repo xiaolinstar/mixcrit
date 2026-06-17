@@ -57,12 +57,12 @@ public struct MixingStationView: View {
             VStack(spacing: 0) {
                 orderCard(layout: layout)
                     .frame(height: layout.orderCardHeight, alignment: .top)
-                    .padding(.top, layout.verticalPadding)
+                    .padding(.top, max(4, layout.verticalPadding))
 
                 mixingStage(layout: layout)
                     .frame(maxHeight: .infinity)
-                    .padding(.top, layout.sectionSpacing)
-                    .padding(.bottom, max(12, layout.sectionSpacing * 1.8))
+                    .padding(.top, max(2, layout.sectionSpacing * 0.8))
+                    .padding(.bottom, max(5, layout.sectionSpacing))
 
                 controlDock(layout: layout)
                     .frame(height: layout.controlDockHeight, alignment: .bottom)
@@ -83,54 +83,80 @@ public struct MixingStationView: View {
     }
 
     private func orderCard(layout: ScreenLayout) -> some View {
-        VStack(alignment: .leading, spacing: layout.isUltraCompact ? 2 : 4) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("订单")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(Color(red: 0.90, green: 0.75, blue: 0.42))
-                    Text("Mojito")
-                        .font(.system(size: max(18, 28 * layout.scale), weight: .black, design: .rounded))
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 8)
-
-                if layout.isUltraCompact {
-                    Text("清爽·薄荷·少甜")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.72))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                } else {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("客人偏好")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.58))
-                        Text("清爽 / 薄荷香 / 不太甜")
-                            .font((layout.isCompact ? Font.caption2 : Font.subheadline).weight(.semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                            .foregroundStyle(.white.opacity(0.84))
-                    }
-                }
+        HStack(spacing: max(7, 10 * layout.scale)) {
+            HStack(spacing: 6) {
+                Image(systemName: "list.clipboard.fill")
+                    .font(.system(size: max(13, 16 * layout.scale), weight: .bold))
+                    .foregroundStyle(Color(red: 0.95, green: 0.78, blue: 0.42))
+                Text("订单 Mojito")
+                    .font(.system(size: max(13, 16 * layout.scale), weight: .black, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             }
 
-            Text(orderStatusText)
-                .font(.caption2)
-                .lineLimit(1)
-                .minimumScaleFactor(0.70)
-                .foregroundStyle(.white.opacity(0.62))
+            Divider()
+                .frame(height: max(18, 24 * layout.scale))
+                .overlay(.white.opacity(0.18))
+
+            HStack(spacing: 6) {
+                Image(selectedIngredient.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: max(17, 23 * layout.scale), height: max(22, 28 * layout.scale))
+                Text("\(selectedIngredient.name) \(Int(currentMix.amount(for: selectedIngredient))) / \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)")
+                    .font(.system(size: max(11, 14 * layout.scale), weight: .bold, design: .rounded))
+                    .foregroundStyle(selectedIngredient.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.52)
+            }
+            .frame(maxWidth: .infinity)
+
+            Divider()
+                .frame(height: max(18, 24 * layout.scale))
+                .overlay(.white.opacity(0.18))
+
+            HStack(spacing: 1) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Image(systemName: "star")
+                        .font(.system(size: max(12, 16 * layout.scale), weight: .semibold))
+                }
+            }
+            .foregroundStyle(Color(red: 0.95, green: 0.70, blue: 0.28).opacity(0.78))
+            .lineLimit(1)
+            .minimumScaleFactor(0.68)
         }
-        .padding(layout.isUltraCompact ? 8 : max(10, 14 * layout.scale))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, max(10, 13 * layout.scale))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .foregroundStyle(.white)
+        .background(.ultraThinMaterial, in: Capsule())
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.12),
+                    Color(red: 0.95, green: 0.76, blue: 0.42).opacity(0.07),
+                    Color.black.opacity(0.20)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: Capsule()
+        )
+        .overlay {
+            Capsule()
+                .stroke(.white.opacity(0.24), lineWidth: 1)
+        }
+        .overlay(alignment: .topLeading) {
+            Capsule()
+                .stroke(.white.opacity(0.18), lineWidth: 0.6)
+                .blur(radius: 0.2)
+                .blendMode(.plusLighter)
+        }
+        .shadow(color: .black.opacity(0.20), radius: 14, y: 8)
         .padding(.horizontal, layout.horizontalPadding)
     }
 
     private func ingredientSelector(layout: ScreenLayout) -> some View {
-        let itemSpacing = max(4, 6 * layout.scale)
-
-        return HStack(spacing: itemSpacing) {
+        HStack(spacing: layout.ingredientItemSpacing) {
             ForEach(ingredients) { ingredient in
                 BarIngredientObjectView(
                     ingredient: ingredient,
@@ -147,19 +173,16 @@ public struct MixingStationView: View {
                     },
                     onStop: stopPouring
                 )
-                .frame(maxWidth: .infinity)
-                .frame(height: layout.ingredientRowHeight)
+                .frame(width: layout.ingredientItemWidth, height: layout.ingredientRowHeight)
             }
         }
     }
 
     private func controlDock(layout: ScreenLayout) -> some View {
-        let rowSpacing = layout.actionRowSpacing
-
-        return VStack(spacing: rowSpacing) {
+        VStack(spacing: layout.actionRowSpacing) {
             ingredientSelector(layout: layout)
 
-            HStack(spacing: max(6, 10 * layout.scale)) {
+            HStack(spacing: max(5, 7 * layout.scale)) {
                 ActionButton(title: "量杯入杯", systemImage: "arrow.down.to.line.compact", tint: Color(red: 0.90, green: 0.78, blue: 0.52), layout: layout) {
                     transferJiggerToGlass()
                 }
@@ -168,12 +191,6 @@ public struct MixingStationView: View {
                     addIce()
                 }
 
-                ActionButton(title: "清空量杯", systemImage: "xmark.circle.fill", tint: Color(white: 0.78), layout: layout) {
-                    clearJigger()
-                }
-            }
-
-            HStack(spacing: max(6, 10 * layout.scale)) {
                 ActionButton(title: "摇酒 \(currentMix.shakeCount)/3", systemImage: "hands.sparkles.fill", tint: Color(red: 0.95, green: 0.76, blue: 0.32), layout: layout) {
                     stopPouring()
                     currentMix.shake()
@@ -191,43 +208,38 @@ public struct MixingStationView: View {
                     finalizeAndServe()
                 }
 
-                Button(role: .destructive) {
-                    onReset()
-                } label: {
-                    Label("重置这杯", systemImage: "arrow.counterclockwise")
-                        .font(.system(size: max(9, 11 * layout.scale), weight: .bold, design: .rounded))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: layout.secondaryButtonHeight)
-                        .foregroundStyle(.white.opacity(0.70))
-                        .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
-                        .contentShape(RoundedRectangle(cornerRadius: 8))
+                ActionButton(title: "清空量杯", systemImage: "xmark.circle.fill", tint: Color(white: 0.78), layout: layout) {
+                    clearJigger()
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.top, layout.dockTopPadding)
         .padding(.horizontal, layout.horizontalPadding)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.04, green: 0.07, blue: 0.06).opacity(0.96),
-                    Color(red: 0.04, green: 0.07, blue: 0.06)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea(edges: .bottom)
-        )
-    }
-
-    private var pouringIngredient: MojitoIngredient? {
-        guard let pouringIngredientID else {
-            return nil
+        .padding(.bottom, max(2, layout.verticalPadding))
+        .background(alignment: .bottom) {
+            UnevenRoundedRectangle(topLeadingRadius: 18, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.15),
+                            Color(red: 0.10, green: 0.12, blue: 0.10).opacity(0.62),
+                            Color.black.opacity(0.36)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 18, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 18, style: .continuous))
+                    .ignoresSafeArea(edges: .bottom)
+                }
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(.white.opacity(0.20))
+                        .frame(height: 1)
+                }
+                .shadow(color: .black.opacity(0.28), radius: 18, y: -6)
         }
-
-        return ingredients.first { $0.id == pouringIngredientID }
     }
 
     private var mixingSceneState: MixingSceneState {

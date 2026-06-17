@@ -50,31 +50,40 @@ public struct ScreenLayout {
         max(3, 4 * scale)
     }
 
+    public var ingredientItemSpacing: CGFloat {
+        max(4, 6 * scale)
+    }
+
+    public var ingredientItemWidth: CGFloat {
+        let availableWidth = contentWidth - horizontalPadding * 2 - ingredientItemSpacing * 4
+        return max(44, availableWidth / 5)
+    }
+
     public var orderCardHeight: CGFloat {
         if isUltraCompact {
-            return 58
+            return 44
         }
         if isCompact {
-            return 66
+            return 50
         }
-        return 78
+        return 56
     }
 
     public var controlDockHeight: CGFloat {
-        ingredientRowHeight + actionButtonHeight * 2 + actionRowSpacing * 2 + dockTopPadding
+        ingredientRowHeight + actionButtonHeight + actionRowSpacing + dockTopPadding
     }
 
-    public var actionButtonHeight: CGFloat { max(24, 28 * scale) }
+    public var actionButtonHeight: CGFloat { max(38, 44 * scale) }
     public var secondaryButtonHeight: CGFloat { max(20, 22 * scale) }
 
     public var ingredientRowHeight: CGFloat {
         if isUltraCompact {
-            return min(82, max(72, 98 * scale))
+            return min(90, max(78, 106 * scale))
         }
         if isCompact {
-            return min(96, max(84, 104 * scale))
+            return min(106, max(94, 114 * scale))
         }
-        return min(108, max(96, 108 * scale))
+        return min(118, max(106, 118 * scale))
     }
 
     public var dockTopPadding: CGFloat {
