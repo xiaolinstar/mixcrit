@@ -1,7 +1,7 @@
 # mixcrit TestFlight 发布检查清单
 
 > 创建日期：2026-05-19
-> 当前版本：0.0.8
+> 当前版本：0.0.12
 > 项目：mixcrit
 > Bundle ID：cn.xiaolinstar.mixcrit
 
@@ -9,7 +9,7 @@
 
 ## 发布目标
 
-0.0.8（P0.7 发布收口版）已上传至 TestFlight，作为首个内部/外部测试基线版本。
+0.0.12（P0.10 首次体验收口版）已上传至 TestFlight，当前等待 Apple 审核。上一基线 0.0.8 (8) / P0.7 仍可供已安装用户对比。
 
 ---
 
@@ -19,8 +19,8 @@
 |------|------|------|
 | Apple Developer 账号 | ✅ 已注册 | cn.xiaolinstar.mixcrit |
 | Bundle Identifier | ✅ 已配置 | cn.xiaolinstar.mixcrit |
-| Xcode 构建与 Archive | ✅ 已完成 | 0.0.8 (8) 已上传 Apple |
-| P0 原型验收清单 | ⏳ 待执行 | 见 `docs/40-qa/p0-acceptance-checklist.md` |
+| Xcode 构建与 Archive | ✅ 已完成 | 0.0.12 (12) 已上传 Apple（2026-05-26） |
+| P0 原型验收清单 | ✅ 已通过 | 见 `docs/40-qa/p0-acceptance-checklist.md` |
 | App Store Connect App 记录 | ✅ 已创建 | TestFlight 已接收构建 |
 | App Icon | ✅ 已配置 | 已加入 1024×1024 PNG，正式发布前可继续替换为品牌终稿 |
 | 启动屏 | ✅ 已配置 | 使用 Xcode 自动生成 LaunchScreen |
