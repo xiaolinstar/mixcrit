@@ -74,7 +74,11 @@ struct ContentView: View {
     #if DEBUG
     private func applyDebugLaunchPhaseIfNeeded() {
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("-uiqa-mixing") {
+        if arguments.contains("-uiqa-mixing-full") {
+            currentMix = .preview
+            UserDefaults.standard.set(true, forKey: "hasCompletedMixingOnboarding")
+            phase = .mixing
+        } else if arguments.contains("-uiqa-mixing") {
             phase = .mixing
         } else if arguments.contains("-uiqa-score") {
             currentMix = .preview
