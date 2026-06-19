@@ -5,6 +5,7 @@ public struct BarIngredientObjectView: View {
     public let amount: Double
     public let isSelected: Bool
     public let isActive: Bool
+    public let isRecommended: Bool
     public let layout: ScreenLayout
     public let onSelect: () -> Void
     public let onStart: () -> Void
@@ -15,6 +16,7 @@ public struct BarIngredientObjectView: View {
         amount: Double,
         isSelected: Bool,
         isActive: Bool,
+        isRecommended: Bool = false,
         layout: ScreenLayout,
         onSelect: @escaping () -> Void,
         onStart: @escaping () -> Void,
@@ -24,6 +26,7 @@ public struct BarIngredientObjectView: View {
         self.amount = amount
         self.isSelected = isSelected
         self.isActive = isActive
+        self.isRecommended = isRecommended
         self.layout = layout
         self.onSelect = onSelect
         self.onStart = onStart
@@ -61,8 +64,8 @@ public struct BarIngredientObjectView: View {
         .background(
             LinearGradient(
                 colors: [
-                    .white.opacity(isSelected ? 0.18 : 0.06),
-                    ingredient.tint.opacity(isSelected ? 0.26 : 0.08)
+                    .white.opacity(isSelected || isRecommended ? 0.18 : 0.06),
+                    ingredient.tint.opacity(isSelected || isRecommended ? 0.30 : 0.08)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -71,15 +74,15 @@ public struct BarIngredientObjectView: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(.white.opacity(isSelected ? 0.42 : 0.20), lineWidth: isSelected ? 1.4 : 0.8)
+                .stroke(.white.opacity(isSelected || isRecommended ? 0.46 : 0.20), lineWidth: isSelected || isRecommended ? 1.4 : 0.8)
         }
         .overlay(alignment: .bottom) {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(ingredient.tint.opacity(isSelected ? 0.80 : 0.24), lineWidth: isSelected ? 1.5 : 0.8)
+                .stroke(ingredient.tint.opacity(isSelected || isRecommended ? 0.86 : 0.24), lineWidth: isSelected || isRecommended ? 1.5 : 0.8)
                 .blendMode(.plusLighter)
         }
-        .shadow(color: ingredient.tint.opacity(isActive ? 0.35 : 0.08), radius: isActive ? 10 : 3, y: 3)
-        .scaleEffect(isActive ? 0.97 : 1)
+        .shadow(color: ingredient.tint.opacity(isActive || isRecommended ? 0.36 : 0.08), radius: isActive || isRecommended ? 10 : 3, y: 3)
+        .scaleEffect(isActive ? 0.97 : (isRecommended ? 1.03 : 1))
         .contentShape(Rectangle())
         .onTapGesture {
             onSelect()

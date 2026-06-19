@@ -350,6 +350,39 @@ public final class MixingScene: SKScene {
         transferArrowNode.lineWidth = 1.6
         transferArrowNode.lineCap = .round
         transferArrowNode.isHidden = false
+
+        if state.jiggerAmount > 0 {
+            runTransferGuidePulseIfNeeded()
+        } else {
+            transferGuideNode.removeAction(forKey: "transfer-guide-pulse")
+            transferArrowNode.removeAction(forKey: "transfer-arrow-pulse")
+            transferGuideNode.alpha = 1
+            transferArrowNode.alpha = 1
+        }
+    }
+
+    private func runTransferGuidePulseIfNeeded() {
+        if transferGuideNode.action(forKey: "transfer-guide-pulse") == nil {
+            let pulse = SKAction.sequence([
+                SKAction.fadeAlpha(to: 0.45, duration: 0.42),
+                SKAction.fadeAlpha(to: 1.0, duration: 0.42)
+            ])
+            transferGuideNode.run(SKAction.repeatForever(pulse), withKey: "transfer-guide-pulse")
+        }
+
+        if transferArrowNode.action(forKey: "transfer-arrow-pulse") == nil {
+            let pulse = SKAction.sequence([
+                SKAction.group([
+                    SKAction.fadeAlpha(to: 0.55, duration: 0.42),
+                    SKAction.scale(to: 1.08, duration: 0.42)
+                ]),
+                SKAction.group([
+                    SKAction.fadeAlpha(to: 1.0, duration: 0.42),
+                    SKAction.scale(to: 1.0, duration: 0.42)
+                ])
+            ])
+            transferArrowNode.run(SKAction.repeatForever(pulse), withKey: "transfer-arrow-pulse")
+        }
     }
 
     private func renderShake(_ state: MixingSceneState) {

@@ -66,7 +66,23 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .sensoryFeedback(.impact(weight: .light, intensity: 0.65), trigger: hapticTick)
+        #if DEBUG
+        .onAppear(perform: applyDebugLaunchPhaseIfNeeded)
+        #endif
     }
+
+    #if DEBUG
+    private func applyDebugLaunchPhaseIfNeeded() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-uiqa-mixing") {
+            phase = .mixing
+        } else if arguments.contains("-uiqa-score") {
+            currentMix = .preview
+            lastScore = MojitoScorer.score(currentMix)
+            phase = .score
+        }
+    }
+    #endif
 
     private func serveDrink() {
         lastScore = MojitoScorer.score(currentMix)

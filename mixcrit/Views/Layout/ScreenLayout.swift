@@ -61,12 +61,12 @@ public struct ScreenLayout {
 
     public var orderCardHeight: CGFloat {
         if isUltraCompact {
-            return 44
+            return 64
         }
         if isCompact {
-            return 50
+            return 70
         }
-        return 56
+        return 76
     }
 
     public var controlDockHeight: CGFloat {

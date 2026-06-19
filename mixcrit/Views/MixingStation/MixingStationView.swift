@@ -15,6 +15,8 @@ public struct MixingStationView: View {
     @State private var glassMotionTick = 0
     @State private var fallingIceTick = 0
     @State private var isFallingIceVisible = false
+    @State private var onboardingStep = 0
+    @AppStorage("hasCompletedMixingOnboarding") private var hasCompletedMixingOnboarding = false
 
     let ingredients: [MojitoIngredient]
     let onServe: () -> Void
@@ -50,23 +52,39 @@ public struct MixingStationView: View {
         ingredients.first { $0.id == selectedIngredientID } ?? .whiteRum
     }
 
+    private var workflowStep: MixingWorkflowStep {
+        MixingWorkflowStep.current(mix: currentMix, jigger: jigger)
+    }
+
     public var body: some View {
         GeometryReader { proxy in
             let layout = ScreenLayout(size: proxy.size, safeArea: proxy.safeAreaInsets)
 
-            VStack(spacing: 0) {
-                orderCard(layout: layout)
-                    .frame(height: layout.orderCardHeight, alignment: .top)
-                    .padding(.top, max(4, layout.verticalPadding))
+            ZStack {
+                VStack(spacing: 0) {
+                    orderCard(layout: layout)
+                        .frame(height: layout.orderCardHeight, alignment: .top)
+                        .padding(.top, max(4, layout.verticalPadding))
 
-                mixingStage(layout: layout)
-                    .frame(maxHeight: .infinity)
-                    .padding(.top, max(2, layout.sectionSpacing * 0.8))
-                    .padding(.bottom, max(5, layout.sectionSpacing))
+                    mixingStage(layout: layout)
+                        .frame(maxHeight: .infinity)
+                        .padding(.top, max(2, layout.sectionSpacing * 0.8))
+                        .padding(.bottom, max(5, layout.sectionSpacing))
 
-                controlDock(layout: layout)
-                    .frame(height: layout.controlDockHeight, alignment: .bottom)
-                    .padding(.bottom, max(0, layout.verticalPadding - 4))
+                    controlDock(layout: layout)
+                        .frame(height: layout.controlDockHeight, alignment: .bottom)
+                        .padding(.bottom, max(0, layout.verticalPadding - 4))
+                }
+
+                if !hasCompletedMixingOnboarding {
+                    MixingOnboardingOverlay(
+                        step: onboardingStep,
+                        layout: layout,
+                        onNext: advanceOnboarding,
+                        onSkip: completeOnboarding
+                    )
+                    .transition(.opacity)
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
         }
@@ -83,49 +101,63 @@ public struct MixingStationView: View {
     }
 
     private func orderCard(layout: ScreenLayout) -> some View {
-        HStack(spacing: max(7, 10 * layout.scale)) {
-            HStack(spacing: 6) {
-                Image(systemName: "list.clipboard.fill")
-                    .font(.system(size: max(13, 16 * layout.scale), weight: .bold))
-                    .foregroundStyle(Color(red: 0.95, green: 0.78, blue: 0.42))
-                Text("订单 Mojito")
-                    .font(.system(size: max(13, 16 * layout.scale), weight: .black, design: .rounded))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
+        VStack(spacing: max(3, 4 * layout.scale)) {
+            HStack(spacing: max(7, 10 * layout.scale)) {
+                HStack(spacing: 6) {
+                    Image(systemName: "list.clipboard.fill")
+                        .font(.system(size: max(13, 16 * layout.scale), weight: .bold))
+                        .foregroundStyle(Color(red: 0.95, green: 0.78, blue: 0.42))
+                    Text("订单 Mojito")
+                        .font(.system(size: max(13, 16 * layout.scale), weight: .black, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
 
-            Divider()
-                .frame(height: max(18, 24 * layout.scale))
-                .overlay(.white.opacity(0.18))
+                Divider()
+                    .frame(height: max(16, 20 * layout.scale))
+                    .overlay(.white.opacity(0.18))
 
-            HStack(spacing: 6) {
-                Image(selectedIngredient.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: max(17, 23 * layout.scale), height: max(22, 28 * layout.scale))
-                Text("\(selectedIngredient.name) \(Int(currentMix.amount(for: selectedIngredient))) / \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)")
-                    .font(.system(size: max(11, 14 * layout.scale), weight: .bold, design: .rounded))
-                    .foregroundStyle(selectedIngredient.tint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.52)
-            }
-            .frame(maxWidth: .infinity)
+                HStack(spacing: 6) {
+                    Image(selectedIngredient.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: max(17, 23 * layout.scale), height: max(20, 26 * layout.scale))
+                    Text("\(selectedIngredient.name) \(Int(currentMix.amount(for: selectedIngredient))) / \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)")
+                        .font(.system(size: max(11, 14 * layout.scale), weight: .bold, design: .rounded))
+                        .foregroundStyle(selectedIngredient.tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.52)
+                }
+                .frame(maxWidth: .infinity)
 
-            Divider()
-                .frame(height: max(18, 24 * layout.scale))
-                .overlay(.white.opacity(0.18))
+                Divider()
+                    .frame(height: max(16, 20 * layout.scale))
+                    .overlay(.white.opacity(0.18))
 
-            HStack(spacing: 1) {
-                ForEach(0..<3, id: \.self) { _ in
-                    Image(systemName: "star")
-                        .font(.system(size: max(12, 16 * layout.scale), weight: .semibold))
+                Menu {
+                    Button("清空量杯", action: clearJigger)
+                    Button("重置这杯", role: .destructive, action: onReset)
+                } label: {
+                    Image(systemName: "ellipsis.circle.fill")
+                        .font(.system(size: max(15, 18 * layout.scale), weight: .bold))
+                        .foregroundStyle(.white.opacity(0.76))
                 }
             }
-            .foregroundStyle(Color(red: 0.95, green: 0.70, blue: 0.28).opacity(0.78))
-            .lineLimit(1)
-            .minimumScaleFactor(0.68)
+
+            HStack(spacing: 6) {
+                Image(systemName: iconName(for: workflowStep.action))
+                    .font(.system(size: max(10, 12 * layout.scale), weight: .black))
+                    .foregroundStyle(tint(for: workflowStep.action))
+                Text(workflowStep.detail)
+                    .font(.system(size: max(10, 12 * layout.scale), weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.82))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.58)
+                Spacer(minLength: 0)
+            }
         }
         .padding(.horizontal, max(10, 13 * layout.scale))
+        .padding(.vertical, max(6, 7 * layout.scale))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(.white)
         .background(.ultraThinMaterial, in: Capsule())
@@ -163,6 +195,7 @@ public struct MixingStationView: View {
                     amount: currentMix.amount(for: ingredient),
                     isSelected: selectedIngredientID == ingredient.id,
                     isActive: isPouring && pouringIngredientID == ingredient.id,
+                    isRecommended: workflowStep.action == .ingredient(ingredient),
                     layout: layout,
                     onSelect: {
                         selectedIngredientID = ingredient.id
@@ -183,15 +216,15 @@ public struct MixingStationView: View {
             ingredientSelector(layout: layout)
 
             HStack(spacing: max(5, 7 * layout.scale)) {
-                ActionButton(title: "量杯入杯", systemImage: "arrow.down.to.line.compact", tint: Color(red: 0.90, green: 0.78, blue: 0.52), layout: layout) {
+                ActionButton(title: "量杯入杯", systemImage: "arrow.down.to.line.compact", tint: Color(red: 0.90, green: 0.78, blue: 0.52), layout: layout, isRecommended: workflowStep.action == .transferJigger) {
                     transferJiggerToGlass()
                 }
 
-                ActionButton(title: "加冰 \(currentMix.iceCount)/6", systemImage: "snowflake", tint: Color(red: 0.64, green: 0.88, blue: 1.0), layout: layout) {
+                ActionButton(title: "加冰 \(currentMix.iceCount)/6", systemImage: "snowflake", tint: Color(red: 0.64, green: 0.88, blue: 1.0), layout: layout, isRecommended: workflowStep.action == .addIce) {
                     addIce()
                 }
 
-                ActionButton(title: "摇酒 \(currentMix.shakeCount)/3", systemImage: "hands.sparkles.fill", tint: Color(red: 0.95, green: 0.76, blue: 0.32), layout: layout) {
+                ActionButton(title: "摇酒 \(currentMix.shakeCount)/3", systemImage: "hands.sparkles.fill", tint: Color(red: 0.95, green: 0.76, blue: 0.32), layout: layout, isRecommended: workflowStep.action == .shake) {
                     stopPouring()
                     currentMix.shake()
                     glassMotionTick += 1
@@ -204,7 +237,7 @@ public struct MixingStationView: View {
                     }
                 }
 
-                ActionButton(title: "出杯", systemImage: "checkmark.seal.fill", tint: Color(red: 0.26, green: 0.78, blue: 0.46), layout: layout) {
+                ActionButton(title: "出杯", systemImage: "checkmark.seal.fill", tint: Color(red: 0.26, green: 0.78, blue: 0.46), layout: layout, isRecommended: workflowStep.action == .serve) {
                     finalizeAndServe()
                 }
 
@@ -262,28 +295,70 @@ public struct MixingStationView: View {
         )
     }
 
-    private var orderStatusText: String {
-        if let active = jigger.activeIngredient, jigger.amount > 0 {
-            return "量杯：\(active.name) \(Int(jigger.amount.rounded()))ml · 点“量杯入杯”"
+    private func advanceOnboarding() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            if onboardingStep >= 2 {
+                completeOnboarding()
+            } else {
+                onboardingStep += 1
+            }
         }
-
-        if selectedIngredient.usesJigger {
-            return "\(selectedIngredient.name)：点击装入 15ml 量杯 · 目标 \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)"
-        }
-
-        return "\(selectedIngredient.name)：点击加入 \(Int(selectedIngredient.stepAmount))\(selectedIngredient.unit) · 目标 \(Int(selectedIngredient.targetAmount))\(selectedIngredient.unit)"
     }
 
-    private var instructionText: String {
-        if selectedIngredient.usesJigger {
-            if let active = jigger.activeIngredient, !jigger.isEmpty {
-                return "量杯中：\(active.name) \(Int(jigger.amount.rounded()))ml · 点“量杯入杯”加入成品杯"
-            }
+    private func completeOnboarding() {
+        withAnimation(.easeOut(duration: 0.18)) {
+            hasCompletedMixingOnboarding = true
+        }
+    }
 
-            return "点击原料装入 15ml 量杯，再点“量杯入杯”。"
+    private func advanceOnboardingAfterJiggerFillIfNeeded() {
+        guard !hasCompletedMixingOnboarding, onboardingStep == 0 else {
+            return
         }
 
-        return selectedIngredient == .mint ? "点击一次加入 2 片薄荷。" : "点击一次加入 30ml 苏打水。"
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            onboardingStep = 1
+        }
+    }
+
+    private func advanceOnboardingAfterTransferIfNeeded() {
+        guard !hasCompletedMixingOnboarding, onboardingStep == 1 else {
+            return
+        }
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            onboardingStep = 2
+        }
+    }
+
+    private func iconName(for action: MixingWorkflowAction) -> String {
+        switch action {
+        case .ingredient(let ingredient):
+            return ingredient.icon
+        case .transferJigger:
+            return "arrow.down.to.line.compact"
+        case .addIce:
+            return "snowflake"
+        case .shake:
+            return "hands.sparkles.fill"
+        case .serve:
+            return "checkmark.seal.fill"
+        }
+    }
+
+    private func tint(for action: MixingWorkflowAction) -> Color {
+        switch action {
+        case .ingredient(let ingredient):
+            return ingredient.tint
+        case .transferJigger:
+            return Color(red: 0.90, green: 0.78, blue: 0.52)
+        case .addIce:
+            return Color(red: 0.64, green: 0.88, blue: 1.0)
+        case .shake:
+            return Color(red: 0.95, green: 0.76, blue: 0.32)
+        case .serve:
+            return Color(red: 0.26, green: 0.78, blue: 0.46)
+        }
     }
 
     private func addIce() {
@@ -321,6 +396,9 @@ public struct MixingStationView: View {
                 glassMotionTick += 1
             }
             pourPulse.toggle()
+        }
+        if ingredient.usesJigger {
+            advanceOnboardingAfterJiggerFillIfNeeded()
         }
         hapticTick.toggle()
 
@@ -365,6 +443,7 @@ public struct MixingStationView: View {
             currentMix.add(ingredient, amount: jigger.amount)
             glassMotionTick += 1
         }
+        advanceOnboardingAfterTransferIfNeeded()
         hapticTick.toggle()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
