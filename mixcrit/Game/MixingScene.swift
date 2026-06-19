@@ -18,7 +18,9 @@ public final class MixingScene: SKScene {
     private let glassGroup = SKNode()
     private let glassImageNode = SKSpriteNode(imageNamed: "highball_glass_empty")
     private let glassLiquidNode = SKShapeNode()
+    private let glassSurfaceNode = SKShapeNode()
     private let glassShineNode = SKShapeNode()
+    private let serveGlowNode = SKShapeNode()
     private let iceLayerNode = SKNode()
     private let limeLayerNode = SKNode()
     private let mintLayerNode = SKNode()
@@ -91,7 +93,9 @@ public final class MixingScene: SKScene {
         jiggerGroup.addChild(jiggerLiquidNode)
         jiggerGroup.addChild(jiggerImageNode)
 
+        glassGroup.addChild(serveGlowNode)
         glassGroup.addChild(glassLiquidNode)
+        glassGroup.addChild(glassSurfaceNode)
         glassGroup.addChild(bubbleLayerNode)
         glassGroup.addChild(limeLayerNode)
         glassGroup.addChild(iceLayerNode)
@@ -115,6 +119,9 @@ public final class MixingScene: SKScene {
         jiggerImageNode.alpha = 0.92
         jiggerFeedbackNode.isHidden = true
         glassImageNode.alpha = 0.96
+        serveGlowNode.isHidden = true
+        serveGlowNode.zPosition = 0
+        glassSurfaceNode.zPosition = 1
         glassShineNode.lineCap = .round
         transferGuideNode.lineCap = .round
         pourStreamNode.lineCap = .round
@@ -231,6 +238,16 @@ public final class MixingScene: SKScene {
         glassImageNode.position = .zero
         glassImageNode.zPosition = 4
 
+        serveGlowNode.path = CGPath(ellipseIn: CGRect(
+            x: -size.width * 0.85,
+            y: -size.height * 0.55,
+            width: size.width * 1.70,
+            height: size.height * 1.20
+        ), transform: nil)
+        serveGlowNode.fillColor = UIColor(red: 1.0, green: 0.86, blue: 0.46, alpha: 0.9)
+        serveGlowNode.strokeColor = .clear
+        serveGlowNode.alpha = 0
+
         let shinePath = CGMutablePath()
         shinePath.move(to: CGPoint(x: -size.width * 0.30, y: size.height * 0.27))
         shinePath.addLine(to: CGPoint(x: -size.width * 0.24, y: -size.height * 0.26))
@@ -246,7 +263,51 @@ public final class MixingScene: SKScene {
         renderTransferGuide(state)
         renderStreams(state)
         renderShake(state)
+        renderServe(state)
         hasRenderedOnce = true
+    }
+
+    private func renderServe(_ state: MixingSceneState) {
+        guard state.isServing else {
+            return
+        }
+        guard glassGroup.action(forKey: "serve") == nil else {
+            return
+        }
+        runServeCelebration()
+    }
+
+    /// 出杯一瞬的完成仪式感：成品杯被金色高光托起、轻轻抬升再回落。
+    private func runServeCelebration() {
+        serveGlowNode.removeAllActions()
+        serveGlowNode.isHidden = false
+        serveGlowNode.alpha = 0
+        serveGlowNode.setScale(0.7)
+
+        let glow = SKAction.sequence([
+            SKAction.group([
+                SKAction.fadeAlpha(to: 0.5, duration: 0.14),
+                SKAction.scale(to: 1.08, duration: 0.18)
+            ]),
+            SKAction.group([
+                SKAction.fadeOut(withDuration: 0.34),
+                SKAction.scale(to: 1.22, duration: 0.34)
+            ]),
+            SKAction.hide()
+        ])
+        serveGlowNode.run(glow)
+
+        let baseY = MixingSceneLayout(size: size).glassCenter.y
+        let lift = SKAction.sequence([
+            SKAction.moveTo(y: baseY + size.height * 0.03, duration: 0.16),
+            SKAction.moveTo(y: baseY, duration: 0.22)
+        ])
+        lift.timingMode = .easeOut
+        let pop = SKAction.sequence([
+            SKAction.scale(to: 1.05, duration: 0.16),
+            SKAction.scale(to: 1.0, duration: 0.22)
+        ])
+        glassGroup.run(SKAction.group([lift, pop]), withKey: "serve")
     }
 
     private func renderJigger(_ state: MixingSceneState, animated: Bool) {
@@ -301,10 +362,21 @@ public final class MixingScene: SKScene {
             cornerHeight: glassSize.width * 0.05,
             transform: nil
         )
-        glassLiquidNode.fillColor = UIColor(red: 0.70, green: 0.86, blue: 0.58, alpha: 0.48)
+        glassLiquidNode.fillColor = UIColor(red: 0.78, green: 0.93, blue: 0.62, alpha: 0.52)
         glassLiquidNode.strokeColor = .clear
         glassLiquidNode.zPosition = 1
         glassLiquidNode.isHidden = fillRatio <= 0
+
+        let surfaceRect = CGRect(
+            x: liquidRect.minX,
+            y: liquidRect.maxY - glassSize.height * 0.012,
+            width: liquidRect.width,
+            height: max(2, glassSize.height * 0.024)
+        )
+        glassSurfaceNode.path = CGPath(ellipseIn: surfaceRect, transform: nil)
+        glassSurfaceNode.fillColor = UIColor(red: 0.90, green: 0.98, blue: 0.78, alpha: 0.55)
+        glassSurfaceNode.strokeColor = .clear
+        glassSurfaceNode.isHidden = fillRatio <= 0
 
         rebuildIce(count: state.iceCount, glassSize: glassSize)
         rebuildLime(isVisible: state.hasLime, glassSize: glassSize)

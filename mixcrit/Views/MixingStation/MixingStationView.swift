@@ -15,6 +15,7 @@ public struct MixingStationView: View {
     @State private var glassMotionTick = 0
     @State private var fallingIceTick = 0
     @State private var isFallingIceVisible = false
+    @State private var isServing = false
     @State private var onboardingStep = 0
     @AppStorage("hasCompletedMixingOnboarding") private var hasCompletedMixingOnboarding = false
 
@@ -291,7 +292,8 @@ public struct MixingStationView: View {
             isPouring: isPouring,
             pouringIngredientID: pouringIngredientID,
             isTransferringJigger: isTransferringJigger,
-            isShaking: isShaking
+            isShaking: isShaking,
+            isServing: isServing
         )
     }
 
@@ -462,6 +464,16 @@ public struct MixingStationView: View {
             jigger.empty()
             isTransferringJigger = false
         }
-        onServe()
+
+        guard !isServing else {
+            return
+        }
+
+        isServing = true
+        hapticTick.toggle()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isServing = false
+            onServe()
+        }
     }
 }

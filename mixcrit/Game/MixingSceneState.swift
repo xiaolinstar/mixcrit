@@ -16,6 +16,7 @@ public struct MixingSceneState: Equatable {
     public var pouringIngredientID: String?
     public var isTransferringJigger: Bool
     public var isShaking: Bool
+    public var isServing: Bool
 
     public init(
         selectedIngredientID: String,
@@ -32,7 +33,8 @@ public struct MixingSceneState: Equatable {
         isPouring: Bool,
         pouringIngredientID: String?,
         isTransferringJigger: Bool,
-        isShaking: Bool
+        isShaking: Bool,
+        isServing: Bool = false
     ) {
         self.selectedIngredientID = selectedIngredientID
         self.selectedIngredientUsesJigger = selectedIngredientUsesJigger
@@ -49,5 +51,6 @@ public struct MixingSceneState: Equatable {
         self.pouringIngredientID = pouringIngredientID
         self.isTransferringJigger = isTransferringJigger
         self.isShaking = isShaking
+        self.isServing = isServing
     }
 }
