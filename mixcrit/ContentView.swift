@@ -12,7 +12,9 @@ struct ContentView: View {
     @State private var selectedIngredientID = MojitoIngredient.whiteRum.id
     @State private var currentMix = MojitoMix()
     @State private var jigger = JiggerState()
+    @State private var simplifiedMix = SimplifiedMixState()
     @State private var lastScore: MojitoScore?
+    @State private var lastServeFeedback: ServeFeedback?
     @State private var isShaking = false
     @State private var isPouring = false
     @State private var pouringIngredientID: String?
@@ -36,9 +38,15 @@ struct ContentView: View {
 
             switch phase {
             case .bar:
-                BarHomeView {
-                    phase = .mixing
-                }
+                BarHomeView(
+                    onStart: {
+                        phase = .mixing
+                    },
+                    onStartSimplified: {
+                        resetSimplifiedMix()
+                        phase = .simplifiedMixing
+                    }
+                )
             case .mixing:
                 MixingStationView(
                     selectedIngredientID: $selectedIngredientID,
@@ -53,6 +61,14 @@ struct ContentView: View {
                     onServe: serveDrink,
                     onReset: { resetDrink(to: .mixing) }
                 )
+            case .simplifiedMixing:
+                SimplifiedMixingView(
+                    mixState: $simplifiedMix,
+                    onServe: serveSimplifiedDrink,
+                    onBack: {
+                        phase = .mixing
+                    }
+                )
             case .score:
                 ScoreView(
                     mix: currentMix,
@@ -60,6 +76,19 @@ struct ContentView: View {
                     onRetry: { resetDrink(to: .mixing) },
                     onBackToBar: {
                         resetDrink(to: .bar)
+                    }
+                )
+            case .serveFeedback:
+                ServeFeedbackView(
+                    mix: simplifiedMix.previewMix,
+                    feedback: lastServeFeedback ?? .empty,
+                    onRetry: {
+                        resetSimplifiedMix()
+                        phase = .simplifiedMixing
+                    },
+                    onBackToBar: {
+                        resetDrink(to: .bar)
+                        resetSimplifiedMix()
                     }
                 )
             }
@@ -78,6 +107,9 @@ struct ContentView: View {
             currentMix = .preview
             UserDefaults.standard.set(true, forKey: "hasCompletedMixingOnboarding")
             phase = .mixing
+        } else if arguments.contains("-uiqa-simplified") {
+            resetSimplifiedMix()
+            phase = .simplifiedMixing
         } else if arguments.contains("-uiqa-mixing") {
             phase = .mixing
         } else if arguments.contains("-uiqa-score") {
@@ -95,10 +127,18 @@ struct ContentView: View {
         }
     }
 
+    private func serveSimplifiedDrink() {
+        lastServeFeedback = ServeFeedbackEvaluator.evaluate(simplifiedMix)
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
+            phase = .serveFeedback
+        }
+    }
+
     private func resetDrink(to targetPhase: GamePhase) {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
             currentMix = MojitoMix()
             jigger = JiggerState()
+            lastServeFeedback = nil
             selectedIngredientID = MojitoIngredient.whiteRum.id
             isShaking = false
             isPouring = false
@@ -106,6 +146,11 @@ struct ContentView: View {
             isTransferringJigger = false
             phase = targetPhase
         }
+    }
+
+    private func resetSimplifiedMix() {
+        simplifiedMix = SimplifiedMixState(preference: CustomerPreference.allCases.randomElement() ?? .refreshing)
+        lastServeFeedback = nil
     }
 }
 

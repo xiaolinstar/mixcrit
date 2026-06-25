@@ -2,9 +2,11 @@ import SwiftUI
 
 public struct BarHomeView: View {
     let onStart: () -> Void
+    let onStartSimplified: (() -> Void)?
 
-    public init(onStart: @escaping () -> Void) {
+    public init(onStart: @escaping () -> Void, onStartSimplified: (() -> Void)? = nil) {
         self.onStart = onStart
+        self.onStartSimplified = onStartSimplified
     }
 
     public var body: some View {
@@ -56,6 +58,18 @@ public struct BarHomeView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(Color(red: 0.15, green: 0.68, blue: 0.40))
                     .padding(.horizontal, layout.horizontalPadding + 12)
+
+                    if let onStartSimplified {
+                        Button(action: onStartSimplified) {
+                            Label("P0.12 简化玩法试验", systemImage: "sparkles")
+                                .font((layout.isCompact ? Font.caption : Font.subheadline).weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, max(9, 12 * layout.scale))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Color(red: 0.94, green: 0.76, blue: 0.34))
+                        .padding(.horizontal, layout.horizontalPadding + 12)
+                    }
                 }
 
                 Spacer(minLength: 0)

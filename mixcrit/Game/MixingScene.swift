@@ -17,8 +17,10 @@ public final class MixingScene: SKScene {
     private let jiggerLiquidNode = SKShapeNode()
     private let glassGroup = SKNode()
     private let glassImageNode = SKSpriteNode(imageNamed: "highball_glass_empty")
+    private let glassLiquidDepthNode = SKShapeNode()
     private let glassLiquidNode = SKShapeNode()
     private let glassSurfaceNode = SKShapeNode()
+    private let glassLiquidHighlightNode = SKShapeNode()
     private let glassShineNode = SKShapeNode()
     private let serveGlowNode = SKShapeNode()
     private let iceLayerNode = SKNode()
@@ -28,6 +30,8 @@ public final class MixingScene: SKScene {
     private let transferGuideNode = SKShapeNode()
     private let pourStreamNode = SKShapeNode()
     private let transferStreamNode = SKShapeNode()
+    private let streamParticleLayerNode = SKNode()
+    private let streamImpactNode = SKShapeNode()
     private var lastRenderedJiggerAmount: Double = 0
     private var lastRenderedJiggerIngredientID: String?
     private var lastRenderedIceCount: Int = 0
@@ -88,14 +92,18 @@ public final class MixingScene: SKScene {
         addChild(glassGroup)
         addChild(pourStreamNode)
         addChild(transferStreamNode)
+        addChild(streamParticleLayerNode)
+        addChild(streamImpactNode)
 
         jiggerGroup.addChild(jiggerFeedbackNode)
         jiggerGroup.addChild(jiggerLiquidNode)
         jiggerGroup.addChild(jiggerImageNode)
 
         glassGroup.addChild(serveGlowNode)
+        glassGroup.addChild(glassLiquidDepthNode)
         glassGroup.addChild(glassLiquidNode)
         glassGroup.addChild(glassSurfaceNode)
+        glassGroup.addChild(glassLiquidHighlightNode)
         glassGroup.addChild(bubbleLayerNode)
         glassGroup.addChild(limeLayerNode)
         glassGroup.addChild(iceLayerNode)
@@ -115,17 +123,23 @@ public final class MixingScene: SKScene {
         glassGroup.zPosition = 4
         pourStreamNode.zPosition = 7
         transferStreamNode.zPosition = 7
+        streamParticleLayerNode.zPosition = 8
+        streamImpactNode.zPosition = 8
 
         jiggerImageNode.alpha = 0.92
         jiggerFeedbackNode.isHidden = true
         glassImageNode.alpha = 0.96
         serveGlowNode.isHidden = true
         serveGlowNode.zPosition = 0
-        glassSurfaceNode.zPosition = 1
+        glassLiquidDepthNode.zPosition = 0
+        glassLiquidNode.zPosition = 1
+        glassSurfaceNode.zPosition = 2
+        glassLiquidHighlightNode.zPosition = 3
         glassShineNode.lineCap = .round
         transferGuideNode.lineCap = .round
         pourStreamNode.lineCap = .round
         transferStreamNode.lineCap = .round
+        streamImpactNode.isHidden = true
     }
 
     private func layoutNodes() {
@@ -322,7 +336,8 @@ public final class MixingScene: SKScene {
         )
 
         jiggerLiquidNode.path = CGPath(ellipseIn: liquidRect, transform: nil)
-        jiggerLiquidNode.fillColor = ingredientColor(for: state.jiggerIngredientID ?? state.selectedIngredientID).withAlphaComponent(0.58)
+        let jiggerLiquidColor = ingredientColor(for: state.jiggerIngredientID ?? state.selectedIngredientID)
+        jiggerLiquidNode.fillColor = jiggerLiquidColor.withAlphaComponent(0.58)
         jiggerLiquidNode.strokeColor = UIColor(white: 1, alpha: 0.26)
         jiggerLiquidNode.lineWidth = max(0.8, jiggerSize.width * 0.018)
         jiggerLiquidNode.zPosition = 4
@@ -333,10 +348,10 @@ public final class MixingScene: SKScene {
             jiggerFeedbackNode.isHidden = true
         }
 
-        if animated,
-           state.jiggerAmount > 0,
-           (lastRenderedJiggerAmount <= 0 || lastRenderedJiggerIngredientID != state.jiggerIngredientID) {
-            runJiggerFillFeedback(color: ingredientColor(for: state.jiggerIngredientID ?? state.selectedIngredientID))
+        let didChangeJiggerLiquid = lastRenderedJiggerAmount <= 0
+            || lastRenderedJiggerIngredientID != state.jiggerIngredientID
+        if animated, state.jiggerAmount > 0, didChangeJiggerLiquid {
+            runJiggerFillFeedback(color: jiggerLiquidColor)
         }
 
         lastRenderedJiggerAmount = state.jiggerAmount
@@ -347,36 +362,7 @@ public final class MixingScene: SKScene {
         let layout = MixingSceneLayout(size: size)
         let glassSize = layout.glassSize
         let fillRatio = CGFloat(min(max(state.glassFillRatio, 0), 1))
-        let liquidBottom = -glassSize.height * 0.44
-        let liquidHeight = fillRatio <= 0 ? 0 : max(glassSize.height * 0.05, glassSize.height * 0.74 * fillRatio)
-        let liquidRect = CGRect(
-            x: -glassSize.width * 0.43,
-            y: liquidBottom,
-            width: glassSize.width * 0.86,
-            height: liquidHeight
-        )
-
-        glassLiquidNode.path = CGPath(
-            roundedRect: liquidRect,
-            cornerWidth: glassSize.width * 0.05,
-            cornerHeight: glassSize.width * 0.05,
-            transform: nil
-        )
-        glassLiquidNode.fillColor = UIColor(red: 0.78, green: 0.93, blue: 0.62, alpha: 0.52)
-        glassLiquidNode.strokeColor = .clear
-        glassLiquidNode.zPosition = 1
-        glassLiquidNode.isHidden = fillRatio <= 0
-
-        let surfaceRect = CGRect(
-            x: liquidRect.minX,
-            y: liquidRect.maxY - glassSize.height * 0.012,
-            width: liquidRect.width,
-            height: max(2, glassSize.height * 0.024)
-        )
-        glassSurfaceNode.path = CGPath(ellipseIn: surfaceRect, transform: nil)
-        glassSurfaceNode.fillColor = UIColor(red: 0.90, green: 0.98, blue: 0.78, alpha: 0.55)
-        glassSurfaceNode.strokeColor = .clear
-        glassSurfaceNode.isHidden = fillRatio <= 0
+        let liquidRect = renderGlassLiquid(fillRatio: fillRatio, glassSize: glassSize)
 
         rebuildIce(count: state.iceCount, glassSize: glassSize)
         rebuildLime(isVisible: state.hasLime, glassSize: glassSize)
@@ -394,6 +380,65 @@ public final class MixingScene: SKScene {
 
         lastRenderedIceCount = state.iceCount
         lastRenderedGlassFill = state.glassFillRatio
+    }
+
+    @discardableResult
+    private func renderGlassLiquid(fillRatio: CGFloat, glassSize: CGSize) -> CGRect {
+        let liquidBottom = -glassSize.height * 0.44
+        let liquidHeight = fillRatio <= 0 ? 0 : max(glassSize.height * 0.05, glassSize.height * 0.74 * fillRatio)
+        let liquidRect = CGRect(
+            x: -glassSize.width * 0.43,
+            y: liquidBottom,
+            width: glassSize.width * 0.86,
+            height: liquidHeight
+        )
+        let isEmpty = fillRatio <= 0
+
+        glassLiquidDepthNode.path = CGPath(
+            roundedRect: liquidRect.insetBy(dx: glassSize.width * 0.025, dy: 0),
+            cornerWidth: glassSize.width * 0.05,
+            cornerHeight: glassSize.width * 0.05,
+            transform: nil
+        )
+        glassLiquidDepthNode.fillColor = UIColor(red: 0.48, green: 0.78, blue: 0.40, alpha: 0.32)
+        glassLiquidDepthNode.strokeColor = .clear
+        glassLiquidDepthNode.isHidden = isEmpty
+
+        glassLiquidNode.path = CGPath(
+            roundedRect: liquidRect,
+            cornerWidth: glassSize.width * 0.05,
+            cornerHeight: glassSize.width * 0.05,
+            transform: nil
+        )
+        glassLiquidNode.fillColor = UIColor(red: 0.78, green: 0.93, blue: 0.62, alpha: 0.48)
+        glassLiquidNode.strokeColor = UIColor(red: 0.94, green: 1.0, blue: 0.82, alpha: 0.12)
+        glassLiquidNode.lineWidth = max(0.8, glassSize.width * 0.008)
+        glassLiquidNode.isHidden = isEmpty
+
+        let surfaceRect = CGRect(
+            x: liquidRect.minX + glassSize.width * 0.03,
+            y: liquidRect.maxY - glassSize.height * 0.012,
+            width: liquidRect.width - glassSize.width * 0.06,
+            height: max(2, glassSize.height * 0.024)
+        )
+        glassSurfaceNode.path = CGPath(ellipseIn: surfaceRect, transform: nil)
+        glassSurfaceNode.fillColor = UIColor(red: 0.90, green: 0.98, blue: 0.78, alpha: 0.58)
+        glassSurfaceNode.strokeColor = UIColor(white: 1, alpha: 0.16)
+        glassSurfaceNode.lineWidth = max(0.6, glassSize.width * 0.006)
+        glassSurfaceNode.isHidden = isEmpty
+
+        let highlightRect = CGRect(
+            x: liquidRect.minX + glassSize.width * 0.12,
+            y: liquidRect.maxY - glassSize.height * 0.055,
+            width: liquidRect.width * 0.46,
+            height: max(1.5, glassSize.height * 0.018)
+        )
+        glassLiquidHighlightNode.path = CGPath(ellipseIn: highlightRect, transform: nil)
+        glassLiquidHighlightNode.fillColor = UIColor(white: 1, alpha: 0.18)
+        glassLiquidHighlightNode.strokeColor = .clear
+        glassLiquidHighlightNode.isHidden = isEmpty
+
+        return liquidRect
     }
 
     /// 倒入后液面快速上抬再回落，给“内容增加了”的即时反馈。
@@ -437,57 +482,165 @@ public final class MixingScene: SKScene {
 
     private func renderStreams(_ state: MixingSceneState) {
         let layout = MixingSceneLayout(size: size)
+        var hasActiveStream = false
         if state.isPouring, let ingredientID = state.pouringIngredientID {
-            let start = ingredientUsesJigger(ingredientID)
-                ? CGPoint(x: layout.jiggerCenter.x - layout.jiggerSize.width * 0.10, y: layout.jiggerCenter.y + layout.jiggerSize.height * 0.62)
-                : CGPoint(x: layout.glassCenter.x - layout.glassSize.width * 0.16, y: layout.glassCenter.y + layout.glassSize.height * 0.66)
-            let end = ingredientUsesJigger(ingredientID) ? CGPoint(x: layout.jiggerCenter.x, y: layout.jiggerCenter.y + layout.jiggerSize.height * 0.38) : layout.glassPourTarget
+            let color = ingredientColor(for: ingredientID)
+            let usesJigger = ingredientUsesJigger(ingredientID)
+            let start = usesJigger ? jiggerPourStart(layout: layout) : directPourStart(layout: layout)
+            let end = usesJigger ? jiggerPourTarget(layout: layout) : layout.glassPourTarget
             pourStreamNode.path = streamPath(from: start, to: end)
-            pourStreamNode.strokeColor = ingredientColor(for: ingredientID).withAlphaComponent(0.82)
-            pourStreamNode.lineWidth = ingredientUsesJigger(ingredientID) ? 6 : 5
+            pourStreamNode.strokeColor = color.withAlphaComponent(0.55)
+            pourStreamNode.lineWidth = usesJigger ? 6 : 5
             pourStreamNode.isHidden = false
+            runStreamParticlesIfNeeded(key: "pour", from: start, to: end, color: color)
+            runImpactRipple(at: end, color: color)
+            hasActiveStream = true
         } else {
             pourStreamNode.isHidden = true
+            streamParticleLayerNode.removeAction(forKey: "pour-stream-particles")
         }
 
         if state.isTransferringJigger {
+            let color = ingredientColor(for: state.jiggerIngredientID ?? state.selectedIngredientID)
             transferStreamNode.path = streamPath(from: layout.pourStart, to: layout.glassPourTarget)
-            transferStreamNode.strokeColor = ingredientColor(for: state.jiggerIngredientID ?? state.selectedIngredientID).withAlphaComponent(0.82)
+            transferStreamNode.strokeColor = color.withAlphaComponent(0.55)
             transferStreamNode.lineWidth = 6
             transferStreamNode.isHidden = false
+            runStreamParticlesIfNeeded(
+                key: "transfer",
+                from: layout.pourStart,
+                to: layout.glassPourTarget,
+                color: color
+            )
+            runImpactRipple(at: layout.glassPourTarget, color: color)
+            hasActiveStream = true
         } else {
             transferStreamNode.isHidden = true
+            streamParticleLayerNode.removeAction(forKey: "transfer-stream-particles")
         }
+
+        if !hasActiveStream {
+            streamParticleLayerNode.removeAllActions()
+            streamImpactNode.removeAllActions()
+            streamImpactNode.isHidden = true
+        }
+    }
+
+    private func jiggerPourStart(layout: MixingSceneLayout) -> CGPoint {
+        CGPoint(
+            x: layout.jiggerCenter.x - layout.jiggerSize.width * 0.10,
+            y: layout.jiggerCenter.y + layout.jiggerSize.height * 0.62
+        )
+    }
+
+    private func jiggerPourTarget(layout: MixingSceneLayout) -> CGPoint {
+        CGPoint(
+            x: layout.jiggerCenter.x,
+            y: layout.jiggerCenter.y + layout.jiggerSize.height * 0.38
+        )
+    }
+
+    private func directPourStart(layout: MixingSceneLayout) -> CGPoint {
+        CGPoint(
+            x: layout.glassCenter.x - layout.glassSize.width * 0.16,
+            y: layout.glassCenter.y + layout.glassSize.height * 0.66
+        )
     }
 
     private func renderTransferGuide(_ state: MixingSceneState) {
         let layout = MixingSceneLayout(size: size)
-        guard !state.isTransferringJigger else {
+        guard !state.isTransferringJigger, state.jiggerAmount > 0 else {
             transferGuideNode.isHidden = true
             transferArrowNode.isHidden = true
+            transferGuideNode.removeAction(forKey: "transfer-guide-pulse")
+            transferArrowNode.removeAction(forKey: "transfer-arrow-pulse")
             return
         }
 
         transferGuideNode.path = streamPath(from: layout.pourStart, to: layout.glassPourTarget)
-        transferGuideNode.strokeColor = UIColor(white: 1, alpha: state.jiggerAmount > 0 ? 0.24 : 0.12)
-        transferGuideNode.lineWidth = state.jiggerAmount > 0 ? 2.2 : 1.5
+        transferGuideNode.strokeColor = UIColor(white: 1, alpha: 0.24)
+        transferGuideNode.lineWidth = 2.2
         transferGuideNode.isHidden = false
 
         transferArrowNode.path = transferChevronPath(from: layout.pourStart, to: layout.glassPourTarget)
-        transferArrowNode.strokeColor = UIColor(white: 1, alpha: state.jiggerAmount > 0 ? 0.34 : 0.18)
+        transferArrowNode.strokeColor = UIColor(white: 1, alpha: 0.34)
         transferArrowNode.fillColor = .clear
         transferArrowNode.lineWidth = 1.6
         transferArrowNode.lineCap = .round
         transferArrowNode.isHidden = false
 
-        if state.jiggerAmount > 0 {
-            runTransferGuidePulseIfNeeded()
-        } else {
-            transferGuideNode.removeAction(forKey: "transfer-guide-pulse")
-            transferArrowNode.removeAction(forKey: "transfer-arrow-pulse")
-            transferGuideNode.alpha = 1
-            transferArrowNode.alpha = 1
+        runTransferGuidePulseIfNeeded()
+    }
+
+    private func runStreamParticlesIfNeeded(key: String, from start: CGPoint, to end: CGPoint, color: UIColor) {
+        let actionKey = "\(key)-stream-particles"
+        guard streamParticleLayerNode.action(forKey: actionKey) == nil else {
+            return
         }
+
+        let spawn = SKAction.run { [weak self] in
+            self?.spawnStreamParticle(from: start, to: end, color: color)
+        }
+        let wait = SKAction.wait(forDuration: 0.055)
+        let particleLoop = SKAction.repeatForever(SKAction.sequence([spawn, wait]))
+        streamParticleLayerNode.run(particleLoop, withKey: actionKey)
+    }
+
+    private func spawnStreamParticle(from start: CGPoint, to end: CGPoint, color: UIColor) {
+        let radius = CGFloat.random(in: 1.4...2.8)
+        let particle = SKShapeNode(circleOfRadius: radius)
+        particle.fillColor = color.withAlphaComponent(0.78)
+        particle.strokeColor = UIColor(white: 1, alpha: 0.18)
+        particle.lineWidth = 0.5
+        particle.position = CGPoint(
+            x: start.x + CGFloat.random(in: -2.5...2.5),
+            y: start.y + CGFloat.random(in: -2.5...2.5)
+        )
+        particle.zPosition = 1
+        streamParticleLayerNode.addChild(particle)
+
+        let path = streamPath(from: particle.position, to: CGPoint(
+            x: end.x + CGFloat.random(in: -4...4),
+            y: end.y + CGFloat.random(in: -3...3)
+        ))
+        let travel = SKAction.follow(path, asOffset: false, orientToPath: false, duration: 0.30)
+        travel.timingMode = .easeIn
+        particle.run(SKAction.sequence([
+            SKAction.group([
+                travel,
+                SKAction.fadeAlpha(to: 0.18, duration: 0.30)
+            ]),
+            SKAction.removeFromParent()
+        ]))
+    }
+
+    private func runImpactRipple(at point: CGPoint, color: UIColor) {
+        guard streamImpactNode.action(forKey: "impact-ripple") == nil else {
+            return
+        }
+
+        let rippleRect = CGRect(x: -8, y: -3, width: 16, height: 6)
+        streamImpactNode.path = CGPath(ellipseIn: rippleRect, transform: nil)
+        streamImpactNode.position = point
+        streamImpactNode.fillColor = .clear
+        streamImpactNode.strokeColor = color.withAlphaComponent(0.45)
+        streamImpactNode.lineWidth = 1.2
+        streamImpactNode.alpha = 0
+        streamImpactNode.setScale(0.65)
+        streamImpactNode.isHidden = false
+
+        let ripple = SKAction.sequence([
+            SKAction.group([
+                SKAction.fadeAlpha(to: 0.72, duration: 0.08),
+                SKAction.scale(to: 1.05, duration: 0.12)
+            ]),
+            SKAction.group([
+                SKAction.fadeOut(withDuration: 0.24),
+                SKAction.scale(to: 1.45, duration: 0.24)
+            ]),
+            SKAction.hide()
+        ])
+        streamImpactNode.run(ripple, withKey: "impact-ripple")
     }
 
     private func runTransferGuidePulseIfNeeded() {
